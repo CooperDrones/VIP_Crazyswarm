@@ -63,6 +63,8 @@ git submodule update
 
 Use `catkin_make` on your workspace to compile.
 
+Ensure hostport in vicon.launch file is set to address `199.98.21.246:801`
+
 ## Usage
 
 There are six packages included: crazyflie_cpp, crazyflie_driver, crazyflie_tools, crazyflie_description, crazyflie_controller, and crazyflie_demo.
@@ -107,7 +109,7 @@ where the uri specifies the uri of your Crazyflie. You can find valid uris using
 
 For hovering at (0,0,1) using VICON, use:
 ```
-roslaunch crazyflie_demo hover_vicon.launch uri:=radio://0/100/2M frame:=/vicon/crazyflie/crazyflie x:=0 y:=0 z:=1
+roslaunch crazyflie_demo hover_vicon.launch uri:=radio://0/80/2M/E7E7E7E702 frame:=/vicon/crazyflie/crazyflie x:=0 y:=0 z:=1
 ```
 where the uri specifies the uri of your Crazyflie and frame the tf-frame. The launch file runs vicon_bridge automatically.
 
@@ -115,7 +117,7 @@ For multiple Crazyflies make sure that all Crazyflies have a different address.
 Crazyflies which share a dongle should use the same channel and datarate for best performance.
 The performance degrades with the number of Crazyflies per dongle due to bandwidth limitations, however it was tested successfully to use 3 CFs per Crazyradio.
 ```
-roslaunch crazyflie_demo multi_teleop_xbox360.launch uri1:=radio://0/100/2M/E7E7E7E7E7 uri2:=radio://0/100/2M/E7E7E7E705
+roslaunch crazyflie_demo multi_teleop_xbox360.launch uri1:=radio://0/35/2M/E7E7E7E701 uri2:=radio://0/80/2M/E7E7E7E702
 ```
 
 Please check the launch files in the crazyflie_demo package for other examples, including simple waypoint navigation.
