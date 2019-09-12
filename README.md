@@ -51,19 +51,32 @@ If your work is related to Mixed Reality, you might cite the paper which introdu
 
 For any other mentioning please include my affiliation (ACTLab at University of Southern California or USC in short; The link to our webpage is http://act.usc.edu) as this work was partially done as part of my research at USC.
 
-## Installation
+## Installation (Cooper Specific)
 
-Clone the package into your catkin workspace:
+If you haven't done so already, create a catkin workspace
 ```
-git clone https://github.com/whoenig/crazyflie_ros.git
-cd crazyflie_ros
+mkdir -p ~/crazyflie_ws/src
+cd ~/crazyflie_ws/src
+catkin_init_workspace
+```
+
+Clone this repository and update submodules
+```
+git clone https://github.com/CooperControlsLab/crazyflie_cooper_ros.git
+cd crazyflie_cooper_ros
 git submodule init
 git submodule update
 ```
 
+Clone vicon_bridge package into workspace
+```
+cd ~/crazyflie_ws/src
+git clone https://github.com/ethz-asl/vicon_bridge.git
+```
+
 Use `catkin_make` on your workspace to compile.
 
-Ensure hostport in vicon.launch file is set to address `199.98.21.246:801`
+Navigate to `~/crazyflie_ws/src/vicon_bridge/src/launch` and set hostport address to `199.98.21.246:801` in the `vicon.launch` file
 
 ## Usage
 
