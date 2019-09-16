@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/whoenig/crazyflie_ros.svg?branch=master)](https://travis-ci.org/whoenig/crazyflie_ros)
 
-crazyflie_cooper_ros
+crazyflie_ros
 =============
 
 ROS stack for Bitcraze Crazyflie (http://www.bitcraze.se/), with the following features:
@@ -11,6 +11,8 @@ ROS stack for Bitcraze Crazyflie (http://www.bitcraze.se/), with the following f
 * Support for using multiple Crazyflies with a single Crazyradio
 * Includes external controller for waypoint navigation (if motion capture system is available)
 * No dependency to the Bitcraze SDK (Driver and Controller written in C++)
+
+A tutorial (for a slightly older version) is available in W. Hönig and N. Ayanian. "Flying Multiple UAVs Using ROS", Chapter in Robot Operating System (ROS): The Complete Reference (Volume 2), Springer, 2017. (see http://act.usc.edu/publications.html for a free pre-print).
 
 If you want to control many Crazyflies or look for a good controller for a single Crazyflie, take a look at http://crazyswarm.readthedocs.io/en/latest/. We are currently in the process to unify the Crazyswarm and crazyflie_ros as well as contributing the Crazyswarm firmware changes back to the official firmware.
 
@@ -51,7 +53,8 @@ For any other mentioning please include my affiliation (ACTLab at University of 
 
 ## Installation (Cooper Specific)
 
-[USC Paper](http://act.usc.edu/publications/Hoenig_Springer_ROS2017.pdf)
+Install VS Code:
+`sudo snap install --classic code`
 
 If you haven't done so already, create a catkin workspace
 ```
