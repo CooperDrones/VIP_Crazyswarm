@@ -56,7 +56,9 @@ For any other mentioning please include my affiliation (ACTLab at University of 
 Install VS Code:
 `sudo snap install --classic code`
 
-Read up through section 3.2 of the following [USC paper.](http://act.usc.edu/publications/Hoenig_Springer_ROS2017.pdf). 3.3 details updating the CF firmware, do so if necessary. 
+Install ROS, we are unsing ROS Kinetic with Ubuntu Xenial 16.04
+
+Read up through section 3.2 of the following [USC paper](http://act.usc.edu/publications/Hoenig_Springer_ROS2017.pdf). 3.3 details updating the CF firmware, do so if necessary. 
 
 Create a catkin workspace accordingly
 ```
