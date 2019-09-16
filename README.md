@@ -56,6 +56,8 @@ For any other mentioning please include my affiliation (ACTLab at University of 
 Install VS Code:
 `sudo snap install --classic code`
 
+Read up through section 3.2 of the following USC paper.
+
 If you haven't done so already, create a catkin workspace
 ```
 mkdir -p ~/crazyflie_ws/src
