@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/whoenig/crazyflie_ros.svg?branch=master)](https://travis-ci.org/whoenig/crazyflie_ros)
 
-crazyflie_ros
+crazyflie_cooper_ros
 =============
 
 ROS stack for Bitcraze Crazyflie (http://www.bitcraze.se/), with the following features:
@@ -52,6 +52,8 @@ If your work is related to Mixed Reality, you might cite the paper which introdu
 For any other mentioning please include my affiliation (ACTLab at University of Southern California or USC in short; The link to our webpage is http://act.usc.edu) as this work was partially done as part of my research at USC.
 
 ## Installation (Cooper Specific)
+
+[USC Paper](http://act.usc.edu/publications/Hoenig_Springer_ROS2017.pdf)
 
 If you haven't done so already, create a catkin workspace
 ```
