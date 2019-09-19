@@ -94,15 +94,24 @@ where the uri specifies the uri of your Crazyflie. You can find valid uris using
 
 For hovering a single crazyflie (use drone labeled 01) at (0,0,0.5) using VICON, use:
 ```
-roslaunch crazyflie_demo hover_vicon.launch uri:=radio://0/35/2M/E7E7E7E701 frame:=/vicon/crazyflie/crazyflie x:=0 y:=0 z:=0.5
+roslaunch crazyflie_demo hover_vicon.launch uri:=radio://0/35/2M/E7E7E7E701 frame:=vicon/crazyflie1/crazyflie1 x:=0 y:=0 z:=0.5
 ```
 where the uri specifies the uri of your Crazyflie and frame the tf-frame. The launch file runs vicon_bridge automatically.
+
+use services to call for takeoff, land and emergency commands
+```
+rosservice call /crazyflie/takeoff
+rosservice call /crazyflie/emergency
+rosservice call /crazyflie/land
+```
 
 For multiple Crazyflies make sure that all Crazyflies have a different address.
 Crazyflies which share a dongle should use the same channel and datarate for best performance.
 The performance degrades with the number of Crazyflies per dongle due to bandwidth limitations, however it was tested successfully to use 3 CFs per Crazyradio.
+
+You can also pass x, y, z position commands from the terminal. Running as is will send to (0,0,0.5) and (0,-0.75,0.5)
 ```
-roslaunch crazyflie_demo multi_hover_vicon.launch uri1:=radio://0/35/2M/E7E7E7E701 frame1:=crazyflie1 uri2:=radio://0/80/2M/E7E7E7E702 frame2:=crazyflie2
+roslaunch crazyflie_demo multi_hover_vicon.launch uri1:=radio://0/35/2M/E7E7E7E701 frame1:=vicon/crazyflie1/crazyflie1 uri2:=radio://0/80/2M/E7E7E7E702 frame2:=vicon/crazyflie2/crazyflie2
 ```
 
 Please check the launch files in the crazyflie_demo package for other examples, including simple waypoint navigation.
