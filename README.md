@@ -16,41 +16,6 @@ A tutorial (for a slightly older version) is available in W. Hönig and N. Ayani
 
 If you want to control many Crazyflies or look for a good controller for a single Crazyflie, take a look at http://crazyswarm.readthedocs.io/en/latest/. We are currently in the process to unify the Crazyswarm and crazyflie_ros as well as contributing the Crazyswarm firmware changes back to the official firmware.
 
-## Citing This Work
-
-This project is published under the very permissive MIT License. However,
-if you use the package we appreciate if you credit this project accordingly.
-
-For academic publications, you can cite the following book chapter:
-```
-@Inbook{crazyflieROS,
-  author={Wolfgang H{\"o}nig
-          and Nora Ayanian},
-  editor={Anis Koubaa},
-  title={Flying Multiple UAVs Using ROS},
-  bookTitle={Robot Operating System (ROS): The Complete Reference  (Volume 2)},
-  year={2017},
-  publisher={Springer International Publishing},
-  pages={83--118},
-  isbn={978-3-319-54927-9},
-  doi={10.1007/978-3-319-54927-9_3},
-  url={https://doi.org/10.1007/978-3-319-54927-9_3}
-}
-
-```
-
-If your work is related to Mixed Reality, you might cite the paper which introduced the package instead, using the following bibtex entry:
-```
-@conference{HoenigMixedReality2015,
-  author = {Wolfgang H{\"o}nig and Christina Milanes and Lisa Scaria and Thai Phan and Mark Bolas and Nora Ayanian},
-  booktitle = {IEEE/RSJ Intl Conf. Intelligent Robots and Systems},
-  pages = {5382 - 5387},
-  title = {Mixed Reality for Robotics},
-  year = {2015}}
-```
-
-For any other mentioning please include my affiliation (ACTLab at University of Southern California or USC in short; The link to our webpage is http://act.usc.edu) as this work was partially done as part of my research at USC.
-
 ## Installation (Cooper Specific)
 
 Install VS Code:
@@ -127,9 +92,9 @@ roslaunch crazyflie_demo teleop_xbox360.launch uri:=radio://0/100/2M
 ```
 where the uri specifies the uri of your Crazyflie. You can find valid uris using the scan command in the crazyflie_tools package.
 
-For hovering at (0,0,1) using VICON, use:
+For hovering a single crazyflie (use drone labeled 01) at (0,0,0.5) using VICON, use:
 ```
-roslaunch crazyflie_demo hover_vicon.launch uri:=radio://0/80/2M/E7E7E7E702 frame:=/vicon/crazyflie/crazyflie x:=0 y:=0 z:=1
+roslaunch crazyflie_demo hover_vicon.launch uri:=radio://0/35/2M/E7E7E7E701 frame:=/vicon/crazyflie/crazyflie x:=0 y:=0 z:=0.5
 ```
 where the uri specifies the uri of your Crazyflie and frame the tf-frame. The launch file runs vicon_bridge automatically.
 
@@ -215,3 +180,40 @@ Similar to the hector_quadrotor, package the fields are used as following:
   * Changed-Callback does not include which parameter(s) were changed. There is only a notion of a level which is a simple bitmask. This would cause that on any parameter change we would need to update all parameters on the Crazyflie.
   * Parameters are statically generated. There are hacks to add parameters at runtime, however those might not work with future versions of dynamic_reconfigure.
   * Groups not fully supported (https://github.com/ros-visualization/rqt_common_plugins/issues/162; This seems to be closed now, however the Indigo binary packages did not pick up the fixes yet).
+
+
+
+## Citing This Work
+
+This project is published under the very permissive MIT License. However,
+if you use the package we appreciate if you credit this project accordingly.
+
+For academic publications, you can cite the following book chapter:
+```
+@Inbook{crazyflieROS,
+  author={Wolfgang H{\"o}nig
+          and Nora Ayanian},
+  editor={Anis Koubaa},
+  title={Flying Multiple UAVs Using ROS},
+  bookTitle={Robot Operating System (ROS): The Complete Reference  (Volume 2)},
+  year={2017},
+  publisher={Springer International Publishing},
+  pages={83--118},
+  isbn={978-3-319-54927-9},
+  doi={10.1007/978-3-319-54927-9_3},
+  url={https://doi.org/10.1007/978-3-319-54927-9_3}
+}
+
+```
+
+If your work is related to Mixed Reality, you might cite the paper which introduced the package instead, using the following bibtex entry:
+```
+@conference{HoenigMixedReality2015,
+  author = {Wolfgang H{\"o}nig and Christina Milanes and Lisa Scaria and Thai Phan and Mark Bolas and Nora Ayanian},
+  booktitle = {IEEE/RSJ Intl Conf. Intelligent Robots and Systems},
+  pages = {5382 - 5387},
+  title = {Mixed Reality for Robotics},
+  year = {2015}}
+```
+
+For any other mentioning please include my affiliation (ACTLab at University of Southern California or USC in short; The link to our webpage is http://act.usc.edu) as this work was partially done as part of my research at USC.
