@@ -34,15 +34,19 @@ class Controller():
         # services were found
         self._buttons = None
         rospy.Subscriber(joy_topic, Joy, self._joyChanged)
+        rospy.loginfo("created joy node subscriber")
 
     def _joyChanged(self, data):
         for i in range(0, len(data.buttons)):
             if self._buttons == None or data.buttons[i] != self._buttons[i]:
                 if i == 0 and data.buttons[i] == 1 and self._land != None:
+                    rospy.loginfo("button for land pressed")
                     self._land()
                 if i == 1 and data.buttons[i] == 1:
+                    rospy.loginfo("button for emergency pressed")
                     self._emergency()
                 if i == 2 and data.buttons[i] == 1 and self._takeoff != None:
+                    rospy.loginfo("button for takeoff pressed")
                     self._takeoff()
                 if i == 4 and data.buttons[i] == 1:
                     value = int(rospy.get_param("ring/headlightEnable"))
