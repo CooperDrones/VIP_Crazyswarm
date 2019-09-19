@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="uri" default="radio://0/90/2M" />
-  <arg name="frame" default="/vicon/crazyflie/crazyflie" />
+  <arg name="uri" default="radio://0/35/2M/E7E7E7E701" />
+  <arg name="frame" default="/vicon/crazyflie1/crazyflie1" />
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="x" default="0" />
   <arg name="y" default="0" />
@@ -37,7 +37,7 @@
       <param name="z" value="$(arg z)" />
     </node>
 
-    <node pkg="tf" type="static_transform_publisher" name="baselink_broadcaster" args="0 0 0 0 0 0 1 $(arg frame) /crazyflie/base_link 100" />
+    <node pkg="tf" type="static_transform_publisher" name="vicon" args="0 0 0 0 0 0 1 $(arg frame) /crazyflie/base_link 100" />
   </group>
 
   <!-- run vicon bridge -->
