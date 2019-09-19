@@ -102,7 +102,7 @@ For multiple Crazyflies make sure that all Crazyflies have a different address.
 Crazyflies which share a dongle should use the same channel and datarate for best performance.
 The performance degrades with the number of Crazyflies per dongle due to bandwidth limitations, however it was tested successfully to use 3 CFs per Crazyradio.
 ```
-roslaunch crazyflie_demo multi_teleop_xbox360.launch uri1:=radio://0/35/2M/E7E7E7E701 uri2:=radio://0/80/2M/E7E7E7E702
+roslaunch crazyflie_demo multi_hover_vicon.launch uri1:=radio://0/35/2M/E7E7E7E701 frame1:=crazyflie1 uri2:=radio://0/80/2M/E7E7E7E702 frame2:=crazyflie2
 ```
 
 Please check the launch files in the crazyflie_demo package for other examples, including simple waypoint navigation.
