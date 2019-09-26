@@ -50,6 +50,8 @@ Use `catkin_make` on your workspace to compile.
 
 Navigate to `~/crazyflie_ws/src/vicon_bridge/launch` and set hostport address to `199.98.21.246:801` in the `vicon.launch` file
 
+See [here](https://wiki.bitcraze.io/doc:crazyflie:dev:fimware:sensor_to_control) for a block diagram of the low-level crazyflie controller
+
 ## Usage
 
 There are six packages included: crazyflie_cpp, crazyflie_driver, crazyflie_tools, crazyflie_description, crazyflie_controller, and crazyflie_demo.
