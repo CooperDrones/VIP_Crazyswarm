@@ -4,6 +4,7 @@ import rospy
 import tf
 from crazyflie_driver.msg import Hover
 from std_msgs.msg import Empty
+from geometry_msgs.msg import PoseStamped
 from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 
@@ -21,6 +22,7 @@ class Crazyflie:
         self.setParam("kalman/resetEstimation", 1)
 
         self.pub = rospy.Publisher(prefix + "/cmd_hover", Hover, queue_size=1)
+        
         self.msg = Hover()
         self.msg.header.seq = 0
         self.msg.header.stamp = rospy.Time.now()
@@ -91,7 +93,7 @@ class Crazyflie:
         print(z_scale)
         print(duration)
 
-        start = rospy.get_time()
+        start = rospy.get_time() # returns the current time in float
         while not rospy.is_shutdown():
             self.msg.vx = vx
             self.msg.vy = vy
@@ -158,11 +160,32 @@ class Crazyflie:
                 zDistance -= 0.2
         self.stop_pub.publish(self.stop_msg)
 
+    def viconListener (self):
+        
+        while not rospy.is_shutdown():
+            
+            rospy.loginfo(self.pose_sub.pose.position.y)
+
+        self.stop_pub.publish(self.stop_msg)
+
+        # def callback(msg):
+        #     print(msg)
+        #     rospy.loginfo(self.msg)
+        # sub = rospy.Subscriber("/cf1/external_pose", PoseStamped, callback)
+        # rospy.spin()
+
+def poseServer():
+    rospy.init_node('pose_server')
+    s = rospy.Service('get_pose', )
+
+self.pose_sub = rospy.Subscriber(prefix + "/external_pose", PoseStamped, callback)
+
 def handler(cf):
-    cf.takeOff(0.4)
-    cf.goTo(0, -1, 0.5, 0)
-    cf.goTo(0, 1, 0.5, 0)
-    cf.land()
+    cf.viconListener()
+    # cf.takeOff(0.35)
+    # cf.goTo(0, -0.5, 0.35, 0)
+    # cf.goTo(0, 0.5, 0.35, 0)
+    # cf.land()
 
 if __name__ == '__main__':
     rospy.init_node('hover', anonymous=True)

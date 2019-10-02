@@ -42,7 +42,7 @@
     <!-- </node> -->
   </group>
 
-    <node name="crazyflie_demo_hover" pkg="crazyflie_demo" type="test_script.py" output="screen">
+    <node name="crazyflie_demo_hover" pkg="crazyflie_demo" type="waypoints_yz_circle.py" output="screen">
     </node>
 
 </launch>
