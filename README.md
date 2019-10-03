@@ -52,6 +52,8 @@ Navigate to `~/crazyflie_ws/src/vicon_bridge/launch` and set hostport address to
 
 See [here](https://wiki.bitcraze.io/doc:crazyflie:dev:fimware:sensor_to_control) for a block diagram of the low-level crazyflie controller
 
+See [here](https://arxiv.org/pdf/1608.05786.pdf) for detailed crazyflie system modeling
+
 ## Usage
 
 There are six packages included: crazyflie_cpp, crazyflie_driver, crazyflie_tools, crazyflie_description, crazyflie_controller, and crazyflie_demo.
