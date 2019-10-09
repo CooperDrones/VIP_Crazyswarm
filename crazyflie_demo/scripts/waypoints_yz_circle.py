@@ -4,9 +4,10 @@ import rospy
 import tf
 from crazyflie_driver.msg import Hover
 from std_msgs.msg import Empty
-from geometry_msgs.msg import PoseStamped
+# from geometry_msgs.msg import PoseStamped
 from crazyflie_driver.srv import UpdateParams
 from threading import Thread
+from vicon_bridge.srv import viconGrabPose
 
 class Crazyflie:
     def __init__(self, prefix):
@@ -32,6 +33,11 @@ class Crazyflie:
         self.stop_pub = rospy.Publisher(prefix + "/cmd_stop", Empty, queue_size=1)
         self.stop_msg = Empty()
 
+        ### Justin Tests
+        # rospy.wait_for_service(prefix + '/vicon/grab_vicon_pose')
+        # self.update_params = rospy.ServiceProxy(prefix + '/vicon/grab_vicon_pose', viconGrabPose)
+        # cf_pose = pose_getter("crazyflie1", "crazyflie1", 1)
+        # return cf_pose.pose.pose.position
 
     # determine direction of speed based on distance
     def getSpeed(self, distance):
@@ -41,6 +47,17 @@ class Crazyflie:
             return -0.1
         else:
             return 0
+
+    def getPosition(self, vicon_object):
+        rospy.wait_for_service('/vicon/grab_vicon_pose')
+        self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
+        self.pose = self.pose_getter(vicon_object, vicon_object, 1)
+        return self.pose.pose.pose.position
+
+    def moveSmallVelocity(self):
+        while not rospy.is_shutdown():
+            self.msg.vy = vy
+            self.pub.publish(self.msg)
 
     def setParam(self, name, value):
         rospy.set_param(self.prefix + "/" + name, value)
@@ -160,40 +177,36 @@ class Crazyflie:
                 zDistance -= 0.2
         self.stop_pub.publish(self.stop_msg)
 
-    def viconListener (self):
-        
-        while not rospy.is_shutdown():
-            
-            rospy.loginfo(self.pose_sub.pose.position.y)
 
-        self.stop_pub.publish(self.stop_msg)
 
-        # def callback(msg):
-        #     print(msg)
-        #     rospy.loginfo(self.msg)
-        # sub = rospy.Subscriber("/cf1/external_pose", PoseStamped, callback)
-        # rospy.spin()
-
-def poseServer():
-    rospy.init_node('pose_server')
-    s = rospy.Service('get_pose', )
-
-self.pose_sub = rospy.Subscriber(prefix + "/external_pose", PoseStamped, callback)
+# def getPosition():
+#     rospy.wait_for_service('/vicon/grab_vicon_pose')
+#     pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
+#     cf_pose = pose_getter("crazyflie1", "crazyflie1", 1)
+#     return cf_pose.pose.pose.position
 
 def handler(cf):
-    cf.viconListener()
     # cf.takeOff(0.35)
     # cf.goTo(0, -0.5, 0.35, 0)
+    position = cf.getPosition()
+    print(position, 'crazyflie1')
     # cf.goTo(0, 0.5, 0.35, 0)
     # cf.land()
 
 if __name__ == '__main__':
     rospy.init_node('hover', anonymous=True)
 
+    # current_pose = getPosition()
+    # print(type(current_pose))
+    # print(current_pose.x)
+    # print(current_pose.y)
+    # print(current_pose.z)
+
     cf1 = Crazyflie("cf1")
     # cf2 = Crazyflie("cf2")
 
     t1 = Thread(target=handler, args=(cf1,))
     # t2 = Thread(target=handler, args=(cf2,))
+    
     t1.start()
     # t2.start()
