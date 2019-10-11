@@ -7,7 +7,7 @@ pub = rospy.Publisher('crazyflie1/cmd_vel', Twist, queue_size=0)
 rate = rospy.Rate(2)
 
 t = Twist() # instatiate a command 
-t.linear = Vector3(1, 1, 1)
+t.linear = Vector3(0, 0, 10000)
 t.angular = Vector3(0, 0, 0)
 
 while not rospy.is_shutdown():
