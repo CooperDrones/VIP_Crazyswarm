@@ -24,6 +24,9 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         pose = grabPose('crazyflie1')
         ax.scatter3D(pose.x, pose.y, pose.z)
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
         rate.sleep()
         plt.ion()
         plt.show(block=False)
