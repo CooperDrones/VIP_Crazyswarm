@@ -4,12 +4,14 @@ from geometry_msgs.msg import Twist,Vector3,TransformStamped # twist used in cmd
 from crazyflie_driver.msg import Hover # used in cmd_hover commands vel, yaw rate, and hover height
 from crazyflie_driver.srv import Takeoff
 from std_msgs.msg import Duration
+from vicon_bridge.srv import viconGrabPose
+import numpy as np
 
 class Tester:
     def __init__(self):
 
         # worldFrame = rospy.get_param("~worldFrame", "/world")      
-        self.sub = rospy.Subscriber("/vicon/crazyflie1/crazyflie1", TransformStamped, self.callback)
+        self.sub = rospy.Subscriber("vicon/crazyflie2/crazyflie2", TransformStamped, self.callback)
         self.msg = Hover()
         self.twist_msg = Twist()
         self.duration_msg = Duration()
@@ -20,39 +22,22 @@ class Tester:
         # rospy.wait_for_service('/crazyflie/takeoff')
         # self.takeoff_command = rospy.ServiceProxy('/crazyflie/takeoff', Takeoff)
 
-        self.pub = rospy.Publisher("crazyflie1/cmd_hover", Hover, queue_size=0)
-        self.pub_twist = rospy.Publisher("crazyflie1/cmd_vel", Twist, queue_size=0)
+        self.pub = rospy.Publisher("crazyflie2/cmd_hover", Hover, queue_size=0)
+        self.pub_twist = rospy.Publisher("crazyflie2/cmd_vel", Twist, queue_size=0)
+
+        rospy.wait_for_service('/vicon/grab_vicon_pose')
+        self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
 
     def callback(self, data):
         self.current_state = data
 
-    def takeOff(self, zDistance):
-        time_range = 1 + int(10*zDistance/0.4)
-        while not rospy.is_shutdown():
-            for y in range(time_range):
-                self.msg.vx = 0.0
-                self.msg.vy = 0.0
-                self.msg.yawrate = 0.0
-                self.msg.zDistance = y / 25.0
-                self.msg.header.seq += 1
-                self.msg.header.stamp = rospy.Time.now()
-                self.pub.publish(self.msg)
-                self.rate.sleep()
-            for y in range(20):
-                self.msg.vx = 0.0
-                self.msg.vy = 0.0
-                self.msg.yawrate = 0.0
-                self.msg.zDistance = zDistance
-                self.msg.header.seq += 1
-                self.msg.header.stamp = rospy.Time.now()
-                self.pub.publish(self.msg)
-                self.rate.sleep()
-            break
-    
+    def getPose(self, vicon_object):
+        self.pose = self.pose_getter(vicon_object, vicon_object, 1)
+        return self.pose.pose.pose.position
+
     def commandAction(self, roll, pitch, thrust, yaw_rate, action_time):
         self.twist_msg.linear = Vector3(roll, pitch, thrust)
         self.twist_msg.angular = Vector3(0, 0, yaw_rate)
-
         data_points = int(self.hz*action_time)
         for i in range(data_points):
             self.pub_twist.publish(self.twist_msg)
@@ -61,58 +46,67 @@ class Tester:
     def commandThrust(self, thrust): # tested and works
         self.twist_msg.linear = Vector3(0, 0, thrust)
         self.twist_msg.angular = Vector3(0, 0, 0)
-
         while not rospy.is_shutdown():
             self.pub_twist.publish(self.twist_msg)
             self.rate.sleep()
 
-# run takeoff command but with twist message instead of hover message
-# def takeOff(pub):
-#     # msg = Twist()
-#     rate = rospy.Rate(100)
-#     # time_range = 1 + int(10*z/0.4)
-#     t = Twist() # instatiate a command 
-#     t.linear = Vector3(0, 0, 10000)
-#     t.angular = Vector3(0, 0, 0)
+    def hoverWithFeedback(self, z_ref):
+        # self.counter = 0
+        # self.time_delay = 10
+        self.z_error_new = 0
+        self.z_kp = 15000
+        self.z_ki = 10
+        self.feed_forward = 36000
+        while not rospy.is_shutdown():
+           
+            # self.twist_msg.linear.z = self.feed_forward
+            # if self.counter == self.time_delay:
 
-#     while not rospy.is_shutdown():
-#         pub.publish(t)
-#         rate.sleep()
-        # for y in range(time_range):
-        #     msg.linear.x = 0.0
-        #     msg.linear.y = 0.0
-        #     msg.angular.z = 0.0
-        #     msg.linear.z = y / 25.0
-        #     # msg.header.seq += 1
-        #     # msg.header.stamp = rospy.Time.now()
-        #     pub.publish(msg)
-        #     rate.sleep()
-        # for y in range(20):
-        #     msg.linear.x = 0.0
-        #     msg.linear.y = 0.0
-        #     msg.angular.z = 0.0
-        #     msg.linear.z = z
-        #     # msg.header.seq += 1
-        #     # msg.header.stamp = rospy.Time.now()
-        #     pub.publish(msg)
-        #     rate.sleep()
-        # break
+            self.pose_cf = self.getPose('crazyflie2')  
+            self.z_actual = self.pose_cf.z
+            self.z_error = z_ref - self.z_actual
+            # self.z_error_new += self.z_error
 
-# def hover(hover_duration_s):
-#     pub = rospy.Publisher('crazyflie1/cmd_vel', Twist, queue_size=0)
-#     hz = 1000
-#     rate = rospy.Rate(hz)
+            self.z_error_scaled = self.z_error * self.z_kp
+            self.twist_msg.linear.z = self.feed_forward + self.z_error_scaled
+            self.twist_msg.linear.x = -2 # Trim based on observation
 
-#     # number of messages to send 
+            print("The commanded thrust is: {}".format(self.twist_msg.linear.z))
+            print("The error is: {}".format(self.z_error_scaled))
+            self.pub_twist.publish(self.twist_msg)
+    
+    def hoverWithBangBang(self, z_ref, circle_radius):
+        self.counter = 0
+        
+        self.z_kp = 10000
+        self.z_feed_forward = 40000
 
-#     t = Twist() # instatiate a command 
-#     t.linear = Vector3(0, 0, 40000)
-#     t.angular = Vector3(0, 0, 0)
+        self.xy_kp = 100
+        while not rospy.is_shutdown():
+            self.pose_cf = self.getPose('crazyflie2')
+            self.x_actual = self.pose_cf.x
+            self.y_actual = self.pose_cf.y
+            self.z_actual = self.pose_cf.z
+            # print('The pose getter is working: {}'.format(self.pose_cf))
+            # print(self.x_actual)
+            self.z_error = z_ref - self.z_actual
+            self.thrust_command = self.feed_forward + (self.z_error * self.z_kp)
+            print("The commanded thrust is: {}".format(self.thrust_command))
+            self.twist_msg.linear.z = self.thrust_command
+            
+            # Initialize lateral bang bang controller after a time delay
+            if self.counter == 30:
+                self.origin_x = self.x_actual
+                self.origin_y = self.y_actual
+                self.offset = ((self.x_actual - self.x_origin)**2 + (self.y_actual - self.y_origin)**2)**(1/2)
+                self.theta = np.arctan((self.y_actual - self.y_origin) / (self.x_actual - self.x_origin))
+                if self.offset > circle_radius:
+                    self.twist_msg.linear.x = self.xy_kp * np.cos(self.theta)
+                    self.twist_msg.linear.y = self.xy_kp * np.sin(self.theta)
+                    print("Lateral controller triggered, offset: {}, theta: {}".format(self.offset, self.theta) )
 
-#     for i in range()
-#         pub.publish(t)
-#         rate.sleep()
-
+            self.pub_twist.publish(self.twist_msg)
+            self.counter += 1
 
 
 if __name__ == "__main__":
@@ -122,22 +116,20 @@ if __name__ == "__main__":
 
     test1 = Tester()
     # test1.takeOff(0.4) # Using hover msg which uses zdistance
+
+    # Command just thrust
     # test1.commandThrust(10000)
 
-    roll = 0
-    pitch = 0
-    thrust = 10000
-    yaw_rate = 0
-    time_seconds = 1
-    test1.commandAction(roll, pitch, thrust, yaw_rate, time_seconds) 
-    # test1.commandAction(10)
+    # Command anything for a certain amount of time
+    # roll = 0
+    # pitch = 0
+    # thrust = 10000
+    # yaw_rate = 0
+    # time_seconds = 0.3
+    # test1.commandAction(roll, pitch, thrust, yaw_rate, time_seconds) 
 
-    # pub = rospy.Publisher('crazyflie1/cmd_vel', Twist, queue_size=0)
-    # rate = rospy.Rate(100)
-    # t = Twist() # instatiate a command 
-    # t.linear = Vector3(0, 0, 40000) # ~40000 thrust is enough to takeoff
-    # t.angular = Vector3(0, 0, 0)
-    # for i in range(30): # publish for 1/3 of a second
-    # # while not rospy.is_shutdown():
-    #     pub.publish(t)
-    #     rate.sleep()
+    z_ref = 0.5 # command height in meters
+    test1.hoverWithFeedback(z_ref)
+
+    # z_ref = 0.5; circle_radius = 0.5; 
+    # test1.hoverWithBangBang(z_ref, circle_radius)
