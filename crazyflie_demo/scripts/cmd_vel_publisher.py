@@ -3,7 +3,7 @@ import rospy
 from geometry_msgs.msg import Twist,Vector3
 
 rospy.init_node('test')
-pub = rospy.Publisher('crazyflie1/cmd_vel', Twist, queue_size=0)
+pub = rospy.Publisher('crazyflie2/cmd_vel', Twist, queue_size=0)
 rate = rospy.Rate(2)
 
 t = Twist() # instatiate a command 
