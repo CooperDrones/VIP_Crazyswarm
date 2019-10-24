@@ -18,11 +18,6 @@ class Demo():
         self.listener = TransformListener()
         self.goals = goals
         self.goalIndex = 0
-        # rospy.wait_for_service(prefix + '/takeoff')
-        # self.takeoff_request = rospy.ServiceProxy(prefix + '/takeoff', Takeoff)
-        # rospy.wait_for_service(prefix + '/land')
-        # self.land_request = rospy.ServiceProxy(prefix + '/takeoff', Land)
-        rospy.wait_for_service = rospy.ServiceProxy(/vicon/grab_vicon)
 
     def run(self):
         self.listener.waitForTransform(self.worldFrame, self.frame, rospy.Time(), rospy.Duration(5.0))
@@ -57,4 +52,3 @@ class Demo():
                         self.goalIndex += 1
             else:
                 break
-        # self.land_request()
