@@ -18,17 +18,18 @@ class Demo():
         self.listener = TransformListener()
         self.goals = goals
         self.goalIndex = 0
-        rospy.wait_for_service(prefix + '/takeoff')
-        self.takeoff_request = rospy.ServiceProxy(prefix + '/takeoff', Takeoff)
-        rospy.wait_for_service(prefix + '/land')
-        self.land_request = rospy.ServiceProxy(prefix + '/takeoff', Land)
+        # rospy.wait_for_service(prefix + '/takeoff')
+        # self.takeoff_request = rospy.ServiceProxy(prefix + '/takeoff', Takeoff)
+        # rospy.wait_for_service(prefix + '/land')
+        # self.land_request = rospy.ServiceProxy(prefix + '/takeoff', Land)
+        rospy.wait_for_service = rospy.ServiceProxy(/vicon/grab_vicon)
 
     def run(self):
         self.listener.waitForTransform(self.worldFrame, self.frame, rospy.Time(), rospy.Duration(5.0))
         goal = PoseStamped()
         goal.header.seq = 0
         goal.header.frame_id = self.worldFrame
-        self.takeoff_request()
+        # self.takeoff_request()
         while not rospy.is_shutdown():
             goal.header.seq += 1
             goal.header.stamp = rospy.Time.now()
