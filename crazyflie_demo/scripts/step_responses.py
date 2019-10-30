@@ -69,39 +69,9 @@ class Tester:
     def hoverWithFeedback(self, z_ref):
         # self.counter = 0
         # self.time_delay = 10
-        self.z_error_n            t = self.listener.getLatestCommonTime(self.worldFrame, self.frame)
-            if self.listener.canTransform(self.worldFrame, self.frame, t):
-                position, quaternion = self.listener.lookupTransform(self.worldFrame, self.frame, t)
-                rpy = tf.transformations.euler_from_quaternion(quaternion)
-                if     math.fabs(position[0] - self.goals[self.goalIndex][0]) < 0.3 \
-                   and math.fabs(position[1] - self.goals[self.goalIndex][1]) < 0.3 \
-                   and math.fabs(position[2] - self.goals[self.goalIndex][2]) < 0.3 \
-                   and math.fabs(rpy[2] - self.goals[self.goalIndex][3]) < math.radians(10) \
-                   and self.goalIndex < len(self.goals) - 1:
-                        rospy.sleep(self.goals[self.goalIndex][4])
-                        self.goalIndex += 1
-        self.z_kp = 10            t = self.listener.getLatestCommonTime(self.worldFrame, self.frame)
-            if self.listener.canTransform(self.worldFrame, self.frame, t):
-                position, quaternion = self.listener.lookupTransform(self.worldFrame, self.frame, t)
-                rpy = tf.transformations.euler_from_quaternion(quaternion)
-                if     math.fabs(position[0] - self.goals[self.goalIndex][0]) < 0.3 \
-                   and math.fabs(position[1] - self.goals[self.goalIndex][1]) < 0.3 \
-                   and math.fabs(position[2] - self.goals[self.goalIndex][2]) < 0.3 \
-                   and math.fabs(rpy[2] - self.goals[self.goalIndex][3]) < math.radians(10) \
-                   and self.goalIndex < len(self.goals) - 1:
-                        rospy.sleep(self.goals[self.goalIndex][4])
-                        self.goalIndex += 1
-        self.z_ki = 10            t = self.listener.getLatestCommonTime(self.worldFrame, self.frame)
-            if self.listener.canTransform(self.worldFrame, self.frame, t):
-                position, quaternion = self.listener.lookupTransform(self.worldFrame, self.frame, t)
-                rpy = tf.transformations.euler_from_quaternion(quaternion)
-                if     math.fabs(position[0] - self.goals[self.goalIndex][0]) < 0.3 \
-                   and math.fabs(position[1] - self.goals[self.goalIndex][1]) < 0.3 \
-                   and math.fabs(position[2] - self.goals[self.goalIndex][2]) < 0.3 \
-                   and math.fabs(rpy[2] - self.goals[self.goalIndex][3]) < math.radians(10) \
-                   and self.goalIndex < len(self.goals) - 1:
-                        rospy.sleep(self.goals[self.goalIndex][4])
-                        self.goalIndex += 1
+        self.z_error = 0
+        self.z_kp = 10
+        self.z_ki = 10
         self.feed_forward = 39000
         while not rospy.is_shutdown():
            
