@@ -6,26 +6,25 @@ from crazyflie_driver.srv import Takeoff
 from std_msgs.msg import Duration
 from vicon_bridge.srv import viconGrabPose
 import numpy as np
-from scipy.spatial.transform import Rotation
+# from scipy.spatial.transform import Rotation
 import math
 
 class Tester:
     def __init__(self):
 
         # worldFrame = rospy.get_param("~worldFrame", "/world")      
-        self.sub = rospy.Subscriber("vicon/crazyflie2/crazyflie2", TransformStamped, self.callback)
+        self.sub = rospy.Subscriber("vicon/crazyflie5/crazyflie5", TransformStamped, self.callback)
         self.msg = Hover()
         self.twist_msg = Twist()
         self.duration_msg = Duration()
-        # self.duration_msg.data.secs = 10f
-        self.hz = 100
+        self.hz = 100 # if not set to 100, will not broadcast
         self.rate = rospy.Rate(self.hz)
 
         # rospy.wait_for_service('/crazyflie/takeoff')
         # self.takeoff_command = rospy.ServiceProxy('/crazyflie/takeoff', Takeoff)
 
-        self.pub = rospy.Publisher("crazyflie2/cmd_hover", Hover, queue_size=0)
-        self.pub_twist = rospy.Publisher("crazyflie2/cmd_vel", Twist, queue_size=0)
+        self.pub = rospy.Publisher("crazyflie/cmd_hover", Hover, queue_size=0)
+        self.pub_twist = rospy.Publisher("crazyflie/cmd_vel", Twist, queue_size=0)
 
         rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
@@ -45,9 +44,7 @@ class Tester:
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
         self.quat = self.pose.pose.pose.orientation
         self.quat_list = [self.quat.x, self.quat.y, self.quat.z, self.quat.w]
-        # if math.isnan(self.position_list[0]):
-        self.quat_list[0] = float
-        if math.isnan(float(self.quat_list[0]))
+        if math.isnan(self.position_list[0]):
             self.quat_list = [0, 0, 0, 1]
         return self.quat_list
 
@@ -78,7 +75,7 @@ class Tester:
             # self.twist_msg.linear.z = self.feed_forward
             # if self.counter == self.time_delay:
 
-            self.pose_cf = self.getPose('crazyflie2')  
+            self.pose_cf = self.getPose('crazyflie5')  
             self.z_actual = self.pose_cf.z
             self.z_error = z_ref - self.z_actual
             # self.z_error_new += self.z_error
@@ -93,7 +90,6 @@ class Tester:
             # self.pub_twist.publish(self.twist_msg)
     
     def hoverWithBangBang(self, z_ref, circle_radius):
-        self.counter = 0.
         self.z_feed_forward = 39000.
         self.z_kp = 10000.
         self.z_ki = 1000.
@@ -103,9 +99,9 @@ class Tester:
         self.yaw_kp = -30.
         self.x_origin = 0.
         self.y_origin = 0.
-        self.z_error_cap = 9.9
+        self.z_error_cap = 1.5 # prevent wind up
         while not rospy.is_shutdown():
-            self.position_actual = self.getPose('crazyflie2')
+            self.position_actual = self.getPose('crazyflie5')
             # print("The position is: {}".format(self.position_actual))
 
             # Trim based on observation
@@ -126,25 +122,26 @@ class Tester:
             self.y_actual = self.position_actual[1]
             self.offset = np.sqrt((self.x_actual - self.x_origin)**2 + (self.y_actual - self.y_origin)**2)
             self.theta = np.arctan2((self.y_actual - self.y_origin), (self.x_actual - self.x_origin))
-            if self.offset > circle_radius:
-                self.twist_msg.linear.x = -1 * self.xy_kp * self.offset * np.cos(self.theta)
-                self.twist_msg.linear.y = self.xy_kp * self.offset * np.sin(self.theta)
-                # print("Lateral controller triggered, offset: {}, theta: {}".format(self.offset, self.theta))
+
+            self.twist_msg.linear.x = -1 * self.xy_kp * self.offset * np.cos(self.theta)
+            self.twist_msg.linear.y = self.xy_kp * self.offset * np.sin(self.theta)
+            # print("Lateral controller triggered, offset: {}, theta: {}".format(self.offset, self.theta))
             
             # # Yaw-rate controller
-            self.quat_actual = self.getPoseQuaternion('crazyflie2')
-            print("The orientation is: {} with type {}".format(self.quat_actual[0], type(self.quat_actual[0])))
+            # self.quat_actual = self.getPoseQuaternion('crazyflie5')
+            # print("The orientation is: {} with type {}".format(self.quat_actual[0], type(self.quat_actual[0])))
             # R = Rotation.from_quat(self.quat_actual)
             # self.global_x = R.apply([1, 0, 0])
             # self.yaw_angle = (-1) * np.arctan2(np.cross([1, 0, 0], self.global_x)[2], np.dot(self.global_x, [1, 0, 0]))
             # print(self.yaw_angle)
             # self.twist_msg.angular.z = self.yaw_kp * self.yaw_angle
 
-            # print("The commanded thrust is: {}".format(self.twist_msg.linear.z))
-            # print("The error is {}. Historical error is: {}".format(self.z_error, self.z_error_historical))
+            print("The commanded thrust is: {}".format(self.twist_msg.linear.z))
+            print("The error is {}. Historical error is {}. Total scaled error is: {}"\
+                .format(self.z_error, self.z_error_historical, self.z_error_scaled))
 
-            # self.pub_twist.publish(self.twist_msg)
-            # self.counter += 1
+            self.pub_twist.publish(self.twist_msg)
+            self.rate.sleep()
 
 
 if __name__ == "__main__":
@@ -156,7 +153,7 @@ if __name__ == "__main__":
         # test1.takeOff(0.4) # Using hover msg which uses zdistance
 
         # Command just thrust
-        # test1.commandThrust(10000)
+        test1.commandThrust(10000)
 
         # Command anything for a certain amount of time
         # roll = 0
@@ -169,8 +166,8 @@ if __name__ == "__main__":
         # z_ref = 0.5 # command height in meters
         # test1.hoverWithFeedback(z_ref)
 
-        z_ref = 0.5; circle_radius = 0.1; 
-        test1.hoverWithBangBang(z_ref, circle_radius)
+        # z_ref = 0.5; circle_radius = 0.1
+        # test1.hoverWithBangBang(z_ref, circle_radius)
     
     except Exception as e:
         print(e)
