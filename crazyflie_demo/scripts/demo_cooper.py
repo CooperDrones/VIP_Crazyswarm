@@ -24,7 +24,6 @@ class Demo():
         goal = PoseStamped()
         goal.header.seq = 0
         goal.header.frame_id = self.worldFrame
-        # self.takeoff_request()
         while not rospy.is_shutdown():
             goal.header.seq += 1
             goal.header.stamp = rospy.Time.now()
@@ -50,5 +49,3 @@ class Demo():
                    and self.goalIndex < len(self.goals) - 1:
                         rospy.sleep(self.goals[self.goalIndex][4])
                         self.goalIndex += 1
-            else:
-                break
