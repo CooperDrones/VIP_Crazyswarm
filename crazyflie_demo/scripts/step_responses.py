@@ -23,8 +23,8 @@ class Tester:
         # rospy.wait_for_service('/crazyflie/takeoff')
         # self.takeoff_command = rospy.ServiceProxy('/crazyflie/takeoff', Takeoff)
 
-        self.pub = rospy.Publisher("crazyflie/cmd_hover", Hover, queue_size=0)
-        self.pub_twist = rospy.Publisher("crazyflie/cmd_vel", Twist, queue_size=0)
+        self.pub = rospy.Publisher('crazyflie/cmd_hover', Hover, queue_size=0)
+        self.pub_twist = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
 
         rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         # test1.takeOff(0.4) # Using hover msg which uses zdistance
 
         # Command just thrust
-        test1.commandThrust(10000)
+        # test1.commandThrust(10000)
 
         # Command anything for a certain amount of time
         # roll = 0
@@ -166,8 +166,8 @@ if __name__ == "__main__":
         # z_ref = 0.5 # command height in meters
         # test1.hoverWithFeedback(z_ref)
 
-        # z_ref = 0.5; circle_radius = 0.1
-        # test1.hoverWithBangBang(z_ref, circle_radius)
+        z_ref = 0.5; circle_radius = 0.1
+        test1.hoverWithBangBang(z_ref, circle_radius)
     
     except Exception as e:
         print(e)
