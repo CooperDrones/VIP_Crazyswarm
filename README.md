@@ -124,9 +124,9 @@ Sweet demo - run with cf3, cf4, and cf5:
 ```
 roslaunch crazyflie_demo pencil_tracker.launch
 ```
-`rosservice call \crazyflie3\takeoff`
-`rosservice call \crazyflie4\takeoff`
-`rosservice call \crazyflie5\takeoff`
+`rosservice call /crazyflie3/takeoff`
+`rosservice call /crazyflie4/takeoff`
+`rosservice call /crazyflie5/takeoff`
 
 ## ROS Features
 
