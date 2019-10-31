@@ -120,6 +120,14 @@ roslaunch crazyflie_demo multi_hover_vicon.launch uri1:=radio://0/35/2M/E7E7E7E7
 
 Please check the launch files in the crazyflie_demo package for other examples, including simple waypoint navigation.
 
+Sweet demo - run with cf3, cf4, and cf5:
+```
+roslaunch crazyflie_demo pencil_tracker.launch
+```
+`rosservice call \crazyflie3\takeoff`
+`rosservice call \crazyflie4\takeoff`
+`rosservice call \crazyflie5\takeoff`
+
 ## ROS Features
 
 ### Parameters
