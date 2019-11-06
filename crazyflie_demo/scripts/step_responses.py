@@ -11,9 +11,8 @@ import math
 
 class Tester:
     def __init__(self):
-
+        rospy.init_node('test')
         # worldFrame = rospy.get_param("~worldFrame", "/world")      
-        self.sub = rospy.Subscriber("vicon/crazyflie5/crazyflie5", TransformStamped, self.callback)
         self.msg = Hover()
         self.twist_msg = Twist()
         self.duration_msg = Duration()
@@ -23,14 +22,13 @@ class Tester:
         # rospy.wait_for_service('/crazyflie/takeoff')
         # self.takeoff_command = rospy.ServiceProxy('/crazyflie/takeoff', Takeoff)
 
-        self.pub = rospy.Publisher('crazyflie/cmd_hover', Hover, queue_size=0)
         self.pub_twist = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
 
         rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
 
     def callback(self, data):
-        self.current_state = data
+        self.current_transform = data
 
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
@@ -59,9 +57,16 @@ class Tester:
     def commandThrust(self, thrust): # tested and works
         self.twist_msg.linear = Vector3(0, 0, thrust)
         self.twist_msg.angular = Vector3(0, 0, 0)
+        self.pub_twist.publish(self.twist_msg)
         while not rospy.is_shutdown():
             self.pub_twist.publish(self.twist_msg)
             self.rate.sleep()
+
+        # t = Twist() # instatiate a command 
+        # t.linear = Vector3(0, 0, 10000)
+        # t.angular = Vector3(0, 0, 0)
+        # pub_twist.publish(self)
+        # self.rate.sleep()
 
     def hoverWithFeedback(self, z_ref):
         # self.counter = 0
@@ -75,7 +80,7 @@ class Tester:
             # self.twist_msg.linear.z = self.feed_forward
             # if self.counter == self.time_delay:
 
-            self.pose_cf = self.getPose('crazyflie5')  
+            self.pose_cf = self.getPose('crazyflie3')  
             self.z_actual = self.pose_cf.z
             self.z_error = z_ref - self.z_actual
             # self.z_error_new += self.z_error
@@ -101,7 +106,10 @@ class Tester:
         self.y_origin = 0.
         self.z_error_cap = 1.5 # prevent wind up
         while not rospy.is_shutdown():
-            self.position_actual = self.getPose('crazyflie5')
+            # self.sub = rospy.Subscriber("vicon/crazyflie3/crazyflie3", TransformStamped, self.callback)
+            # self.position_actual = self.current_transform.transform.translation
+            
+            self.position_actual = self.getPose('crazyflie3')
             # print("The position is: {}".format(self.position_actual))
 
             # Trim based on observation
@@ -110,6 +118,8 @@ class Tester:
 
             # Altitude controller
             self.z_actual = self.position_actual[2]
+            # self.z_actual = self.position_actual.z
+
             self.z_error = z_ref - self.z_actual
             if self.z_error_historical <= self.z_error_cap:
                 self.z_error_historical += (self.z_error * 1/self.hz)
@@ -120,6 +130,9 @@ class Tester:
             # if self.counter >= 15:
             self.x_actual = self.position_actual[0]
             self.y_actual = self.position_actual[1]
+            # self.x_actual = self.position_actual.x
+            # self.y_actual = self.position_actual.y
+
             self.offset = np.sqrt((self.x_actual - self.x_origin)**2 + (self.y_actual - self.y_origin)**2)
             self.theta = np.arctan2((self.y_actual - self.y_origin), (self.x_actual - self.x_origin))
 
@@ -128,7 +141,7 @@ class Tester:
             # print("Lateral controller triggered, offset: {}, theta: {}".format(self.offset, self.theta))
             
             # # Yaw-rate controller
-            # self.quat_actual = self.getPoseQuaternion('crazyflie5')
+            # self.quat_actual = self.getPoseQuaternion('crazyflie3')
             # print("The orientation is: {} with type {}".format(self.quat_actual[0], type(self.quat_actual[0])))
             # R = Rotation.from_quat(self.quat_actual)
             # self.global_x = R.apply([1, 0, 0])
@@ -141,11 +154,17 @@ class Tester:
                 .format(self.z_error, self.z_error_historical, self.z_error_scaled))
 
             self.pub_twist.publish(self.twist_msg)
-            self.rate.sleep()
+            # self.rate.sleep()
+    
+    def listenerTest(self):
+        while not rospy.is_shutdown():
+            self.sub = rospy.Subscriber("vicon/crazyflie3/crazyflie3", TransformStamped, self.callback)
+            rospy.sleep(1)
+            print('vicon data is: {}'.format(self.current_transform.transform.translation.x))
 
 
 if __name__ == "__main__":
-    rospy.init_node('test')
+    # rospy.init_node('test')
 
 
     try:
@@ -153,7 +172,8 @@ if __name__ == "__main__":
         # test1.takeOff(0.4) # Using hover msg which uses zdistance
 
         # Command just thrust
-        # test1.commandThrust(10000)
+        while not rospy.is_shutdown():
+            test1.commandThrust(30000)
 
         # Command anything for a certain amount of time
         # roll = 0
@@ -166,8 +186,10 @@ if __name__ == "__main__":
         # z_ref = 0.5 # command height in meters
         # test1.hoverWithFeedback(z_ref)
 
-        z_ref = 0.5; circle_radius = 0.1
-        test1.hoverWithBangBang(z_ref, circle_radius)
-    
+        # z_ref = 0.5; circle_radius = 0.1
+        # test1.hoverWithBangBang(z_ref, circle_radius)
+
+        # test1.listenerTest()
+
     except Exception as e:
         print(e)
