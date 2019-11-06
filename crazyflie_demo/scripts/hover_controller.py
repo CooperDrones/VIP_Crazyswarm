@@ -68,7 +68,7 @@ class Tester:
         self.x_origin = 0.
         self.y_origin = 0.
         self.z_error_cap = 1.5 # prevent wind up
-        self.z_error_before = 0.0
+        self.z_error_before = 0.
         while not rospy.is_shutdown():
             self.position_actual = self.getPose('crazyflie3')
             # print("The position is: {}".format(self.position_actual))
@@ -80,20 +80,25 @@ class Tester:
             # Altitude controller
             self.z_actual = self.position_actual[2]
 
-            # Proportional
+            # Proportional controller
             self.z_error = z_ref - self.z_actual
             
-            # Integral with bound
+            # Integral controller with bound
             if self.z_error_historical <= self.z_error_cap:
                 self.z_error_historical += (self.z_error * 1/self.hz)
             
-            # Derivative
-            self.z_error_der = (self.z_error_before - self.z_error) / (1/self.hz)
+            # Derivative controller
+            # print(0.03333)
+            # print(self.z_error - self.z_error_before)
+
+            self.z_error_der = (self.z_error - self.z_error_before) / (0.03333)
             self.z_error_before = self.z_error
 
+            # Add errors together and multiply by gains
             self.z_error_scaled = (self.z_error * self.z_kp) + (self.z_error_historical * self.z_ki) \
                 + (self.z_error_der * self.z_kd)
 
+            # publish to thrust command
             self.msg.linear.z = self.z_feed_forward + self.z_error_scaled
             
             # Lateral bang bang controller - provides restoring pitch and yaw if drone excapes circle on xy plane
@@ -110,16 +115,16 @@ class Tester:
             
             # Yaw-rate controller
             self.quat_actual = self.getPoseQuaternion('crazyflie3')
-            print("The orientation is: {} with type {}".format(self.quat_actual[0], type(self.quat_actual[0])))
+            # print("The orientation is: {} with type {}".format(self.quat_actual[0], type(self.quat_actual[0])))
             R = Rotation.from_quat(self.quat_actual)
             self.global_x = R.apply([1, 0, 0])
             self.yaw_angle = (-1) * np.arctan2(np.cross([1, 0, 0], self.global_x)[2], np.dot(self.global_x, [1, 0, 0]))
-            print(self.yaw_angle)
+            # print(self.yaw_angle)
             self.msg.angular.z = self.yaw_kp * self.yaw_angle
 
             print("The commanded thrust is: {}".format(self.msg.linear.z))
-            print("The error is {}. Historical error is {}. Total scaled error is: {}"\
-                .format(self.z_error, self.z_error_historical, self.z_error_scaled))
+            print("The error is {}. Historical error is {}. Derivatice error is {}. Total scaled error is: {}"\
+                .format(self.z_error, self.z_error_historical, self.z_error_der, self.z_error_scaled))
 
             self.pub.publish(self.msg)
             self.rate.sleep()
