@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="uri1" default="radio://0/80/2M/E7E7E7E702" />
+  <arg name="uri" default="radio://0/35/2M/E7E7E7E703" />
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-  <group ns="crazyflie2">
+  <group ns="crazyflie">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
-      <param name="uri" value="$(arg uri1)" />
-      <param name="tf_prefix" value="crazyflie2" />
+      <param name="uri" value="$(arg uri)" />
+      <param name="tf_prefix" value="crazyflie" />
       <param name="enable_logging" value="False" />
     </node>
   </group>
@@ -18,6 +18,7 @@
 
   <!-- <node name="crazyflie_plot_poses" pkg="crazyflie_demo" type="plot_poses.py" output="screen"> </node> -->
   <!-- <node name="cmd_vel_publisher" pkg="crazyflie_demo" type="cmd_vel_publisher.py" output="screen"> </node> -->
-  <node name="crazyflie_step_responses" pkg="crazyflie_demo" type="step_responses.py" output="screen"> </node>
+  <!-- <node name="crazyflie_step_responses" pkg="crazyflie_demo" type="step_responses.py" output="screen"> </node> -->
+  <node name="test" pkg="crazyflie_demo" type="hover_controller.py" output="screen"> </node>
 
 </launch>
