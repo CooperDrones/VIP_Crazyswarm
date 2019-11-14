@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="uri" default="radio://0/35/2M/E7E7E7E701" />
-  <arg name="frame" default="/vicon/crazyflie1/crazyflie1" />
+  <arg name="uri" default="radio://0/35/2M/E7E7E7E703" />
+  <arg name="frame" default="/vicon/crazyflie3/crazyflie3" />
   <arg name="joy_dev" default="/dev/input/js0" />
   <arg name="x" default="0" />
   <arg name="y" default="0" />

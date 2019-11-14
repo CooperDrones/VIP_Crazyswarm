@@ -15,14 +15,14 @@ def grabPose(vicon_object):
 if __name__ == "__main__":
     
     rospy.init_node('plotter')
-    rate = rospy.Rate(100)
+    rate = rospy.Rate(30)
 
     fig = plt.figure()
     ax = plt.axes(projection='3d')
 
     # for i in range(10)
     while not rospy.is_shutdown():
-        pose = grabPose('crazyflie1')
+        pose = grabPose('crazyflie3')
         ax.scatter3D(pose.x, pose.y, pose.z)
         ax.set_xlabel('x')
         ax.set_ylabel('y')
