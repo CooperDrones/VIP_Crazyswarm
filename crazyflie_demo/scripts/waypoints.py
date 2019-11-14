@@ -31,7 +31,7 @@ class Tester:
             self.pub.publish(self.msg)
             self.rate.sleep()
         
-        # Followed paper below section 3.1 for controller
+        # Followed this paper, section 3.1, for PID controller
         # https://arxiv.org/pdf/1608.05786.pdf
         # Altitude (z) controller gains and initialization
         self.z_feed_forward = 44705. # Eq. 3.1.8
@@ -60,16 +60,18 @@ class Tester:
         self.yaw_kp = -20. # Table 3.1.3
 
         # Set initial reference values
-        x_ref = waypoints[0,0]; y_ref = waypoints[0,1]; z_ref = waypoints[0,2]
+        # x_ref = waypoints[0,0]; y_ref = waypoints[0,1]; z_ref = waypoints[0,2]
         origin = self.getPose('crazyflie4')
         self.pose_actual = origin
+        no_points = waypoints.shape[0]
+        print(no_points)
         
         # Hold yaw constant throughout
         yaw_ref = 0
 
         time_step = (1/self.hz)
-        
-        # counter = 0
+        counter = 0
+
         while not rospy.is_shutdown():
             # Get current drone pose
             self.pose_before = self.pose_actual
@@ -78,7 +80,7 @@ class Tester:
                 self.pose_actual = self.pose_before
 
             # Set reference reference values
-            # x_ref = waypoints[counter, 0]; y_ref = waypoints[counter, 1]; z_ref = waypoints[counter, 2]
+            x_ref = waypoints[counter, 0]; y_ref = waypoints[counter, 1]; z_ref = waypoints[counter, 2]
 
             ### Altitude controller ###
 
@@ -180,11 +182,15 @@ class Tester:
 
             # print('x ref: {} y ref: {} z ref: {}'.format(x_ref, y_ref, z_ref))
 
-            # if (self.x_actual > (x_ref - circle_radius) and self.x_actual < (x_ref + circle_radius)) and \
-            #     (self.y_actual > (y_ref - circle_radius) and self.y_actual < (y_ref + circle_radius)) and \
-            #     (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)):
-            #     print('if statement triggered')
-            #     counter += 1
+            # (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)) and \
+            # (self.z_actual > z_ref) and \
+
+            # Waypoint incremeneter, last statement ensures drone will stay at last point
+            if (self.x_actual > (x_ref - circle_radius) and self.x_actual < (x_ref + circle_radius)) and \
+                (self.y_actual > (y_ref - circle_radius) and self.y_actual < (y_ref + circle_radius)) and \
+                counter < no_points - 1:
+                print('if statement triggered')
+                counter += 1
 
 
             self.pub.publish(self.msg)
@@ -196,12 +202,47 @@ if __name__ == "__main__":
     try:
         test1 = Tester()
 
-        waypoints = np.array([[0, 0, 0.4], [0, 0.5, 0.4]])
+        # waypoints = np.array([[0, 0, 0.4], 
+        # [2, 0, 0.4], 
+        # [-2, 0, 0.4],
+        # [2, 0, 0.4], 
+        # [-2, 0, 0.4],
+        # [2, 0, 0.4], 
+        # [-2, 0, 0.4]])
 
-        # x_ref = waypoints[0,0]; y_ref = waypoints[0,1]; z_ref = waypoints[0,2]
-        # print('x {}, y {}, z {}'.format(x_ref, y_ref, z_ref))
+        # # Circle
+        # N = 10
+        # x = np.linspace(0.0, 2*np.pi, N)
+        # waypoints = np.zeros((N,3))
+        # for i in range(len(x)):
+        #     waypoints[i, 0] = np.sin(x[i])
+        #     waypoints[i, 1] = np.cos(x[i])
+        #     waypoints[i, 2] = 0.4
 
-        circle_radius = 0.1
+        # room corners
+        waypoints = np.array([[0, 0, 0.5],
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5],
+        
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5],
+
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5],
+        
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5]
+        ])
+
+        circle_radius = 0.3
         test1.waypointsWithPID(waypoints, circle_radius)
 
     except Exception as e:
