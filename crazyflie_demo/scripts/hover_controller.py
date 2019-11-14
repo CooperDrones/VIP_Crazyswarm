@@ -54,7 +54,7 @@ class Tester:
             self.pub.publish(self.msg)
             self.rate.sleep()
     
-    def hoverWithBangBang(self, z_ref, circle_radius, x_ref, y_ref):
+    def hoverWithPID(self, z_ref, circle_radius, x_ref, y_ref):
         # REQUIRED TO OVERCOME INITIAL PUBLISHER BLOCK IMPLEMENTED BY USC
         self.msg.linear = Vector3(0, 0, 0)
         self.msg.angular = Vector3(0, 0, 0)
@@ -64,37 +64,29 @@ class Tester:
         
         # Followed paper below section 3.1 for controller
         # https://arxiv.org/pdf/1608.05786.pdf
-        # Altitude (z) controller gains
+        # Altitude (z) controller gains and initialization
         self.z_feed_forward = 44705. # Eq. 3.1.8
         self.z_kp = 11000. # Table 3.1.3
         self.z_ki = 3500.
         self.z_kd = 9000
         self.z_error_historical = 0.
-        self.thrust_cap_high = 15000
+        self.thrust_cap_high = 15000 # TODO add caps for all commands
         self.thrust_cap_low = -20000
         self.z_error_before = 0.
         self.z_error_cap = 1.5
         
-        # BANG BANG gains
-        self.xy_kp = 10.
-        
-        # XY controller gains
-        self.x_kp = 10.
+        # XY controller gains and initialization
+        self.x_kp = 10. # Table 3.1.3
         self.x_ki = 2.
         self.y_kp = -10.
         self.y_ki = -2.
-
         self.x_error_historical = 0.
         self.y_error_historical = 0.
-
         self.x_before = 0
         self.y_before = 0
 
         # Yaw rate controller gains
-        self.yaw_kp = -20.
-
-        self.position_actual = [0, 0, 0]
-        self.quat_actual = [0, 0, 0, 1]
+        self.yaw_kp = -20. # Table 3.1.3
 
         # Set x and y reference values to takeoff position
         origin = self.getPose('crazyflie4')
@@ -105,33 +97,36 @@ class Tester:
 
         time_step = (1/self.hz)
         while not rospy.is_shutdown():
+            # Get current drone pose
             self.pose_before = self.pose_actual
             self.pose_actual = self.getPose('crazyflie4')
             if math.isnan(self.pose_actual.orientation.x): # If nan is thrown, set to last known position
                 self.pose_actual = self.pose_before
 
-            # Altitude controller
+            ### Altitude controller ###
+
+            # Get true z value
             self.z_actual = self.pose_actual.position.z
 
-            # Proportional controller
+            # Get error
             self.z_error = z_ref - self.z_actual
             
-            # Integral controller
+            # Find integral component
             if self.z_error_historical <= self.z_error_cap:
                 self.z_error_historical += (self.z_error * time_step)
             
-            # Derivative controller
+            # Find derivative component
             self.z_error_der = (self.z_error - self.z_error_before) / time_step
             self.z_error_before = self.z_error
 
-            # Add errors together and multiply by gains
+            # Sum PID errors and multiply by gains
             self.z_error_scaled = (self.z_error * self.z_kp) + (self.z_error_historical * self.z_ki) \
                 + (self.z_error_der * self.z_kd) # Eq. 3.1.7
 
             # publish to thrust command
             self.msg.linear.z = self.z_feed_forward + self.z_error_scaled
 
-            #####################################################################
+            ### XY position controller ###
 
             # get true x and y values
             self.x_actual = self.pose_actual.position.x
@@ -145,8 +140,8 @@ class Tester:
             self.yaw_angle = np.arctan2(np.cross([1, 0, 0], self.global_x)[2], \
                 np.dot(self.global_x, [1, 0, 0]))
             
-            # XY error in the drone body frame Eq. 3.1.10
-            # u (x-velocity) and v (y-velocity) in the body frame
+            # Find XY error in the drone body frame Eq. 3.1.10
+            # Find u (x-velocity) and v (y-velocity) in the body frame
             self.x_error_world = x_ref - self.x_actual
             self.y_error_world = y_ref - self.y_actual
 
@@ -162,9 +157,11 @@ class Tester:
             self.x_diff = self.x_e - self.u
             self.y_diff = self.y_e - self.v
 
+            # Find integral component - store historical error
             self.x_error_historical += (self.x_diff * time_step)
             self.y_error_historical += (self.y_diff * time_step)
 
+            # Sum PI errors and multiply by gains
             self.x_error_scaled = (self.x_diff * self.x_kp) \
                 + (self.x_error_historical * self.x_ki)
             self.y_error_scaled = (self.y_diff * self.y_kp) \
@@ -174,18 +171,18 @@ class Tester:
             self.msg.linear.x = self.x_error_scaled
             self.msg.linear.y = self.y_error_scaled
 
-            # Yaw-rate controller
+            ### Yaw-rate controller Eq. 3.1.13 ###
             self.yaw_error = yaw_ref - self.yaw_angle
             self.yaw_error_scaled = self.yaw_kp * self.yaw_error
             self.msg.angular.z = self.yaw_error_scaled
 
-            ######################################################################
+            ### Useful print statements for debug ###
 
-            print("The commanded thrust is: {}".format(self.msg.linear.z))
+            # print("The commanded thrust is: {}".format(self.msg.linear.z))
             # print("The z error is {}. Historical error is {}. Derivatice error is {}. Total scaled error is: {}"\
             #     .format(self.z_error, self.z_error_historical, self.z_error_der, self.z_error_scaled)) # HERE
-            print("X command: {}. Y command {}."\
-                .format(self.x_error_scaled ,self.y_error_scaled))
+            # print("X command: {}. Y command {}."\
+            #     .format(self.x_error_scaled ,self.y_error_scaled))
             # print("The orientation is: {} with type {}".format(self.quat_actual[0], type(self.quat_actual[0])))
             # print('Yaw angle: {}'.format(self.yaw_angle))
             # print('x in body frame: {}'. format(self.x_e))
@@ -199,13 +196,11 @@ if __name__ == "__main__":
 
     try:
         test1 = Tester()
-        # test1.takeOff(0.4) # Using hover msg which uses zdistance
 
-        # Command just thrust
-        # while not rospy.is_shutdown():
-        #     test1.commandThrust(30000)
+        # # Command just thrust
+        # test1.commandThrust(30000)
 
-        # Command anything for a certain amount of time
+        # # Command anything for a certain amount of time
         # roll = 0
         # pitch = 0
         # thrust = 10000
@@ -213,13 +208,8 @@ if __name__ == "__main__":
         # time_seconds = 0.3
         # test1.commandAction(roll, pitch, thrust, yaw_rate, time_seconds) 
 
-        # z_ref = 0.5 # command height in meters
-        # test1.hoverWithFeedback(z_ref)
-
         z_ref = 0.4; circle_radius = 0.1
-        test1.hoverWithBangBang(z_ref, circle_radius, 0.0, 0.0)
-
-        # test1.listenerTest()
+        test1.hoverWithPID(z_ref, circle_radius, 0.0, 0.0)
 
     except Exception as e:
         print(e)
