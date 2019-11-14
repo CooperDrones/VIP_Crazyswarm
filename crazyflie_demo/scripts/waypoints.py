@@ -17,44 +17,13 @@ class Tester:
         self.pub = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
         rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
-
-    def getPosePosition(self, vicon_object):
-        self.pose = self.pose_getter(vicon_object, vicon_object, 1)
-        self.position = self.pose.pose.pose.position
-        self.position_list = [self.position.x, self.position.y, self.position.z]
-        if math.isnan(self.position_list[0]):
-            self.posiiton_list = [0, 0, 0]
-        return self.position_list
-    
-    def getPoseQuaternion(self, vicon_object):
-        self.pose = self.pose_getter(vicon_object, vicon_object, 1)
-        self.quat = self.pose.pose.pose.orientation
-        self.quat_list = [self.quat.x, self.quat.y, self.quat.z, self.quat.w]
-        if math.isnan(self.quat_list[0]):
-            self.quat_list = [0, 0, 0, 1]
-        return self.quat_list
     
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
         self.pose1 = self.pose.pose.pose
         return self.pose1
-
-    def commandThrust(self, thrust): # tested and works
-        self.msg.linear = Vector3(0, 0, 0)
-        self.msg.angular = Vector3(0, 0, 0)
-        
-        # REQUIRED TO OVERCOME INITIAL PUBLISHER BLOCK IMPLEMENTED BY USC
-        for i in range(100):
-            self.pub.publish(self.msg)
-            self.rate.sleep()
-
-        self.msg.linear = Vector3(0, 0, thrust)
-        self.msg.angular = Vector3(0, 0, 0)
-        while not rospy.is_shutdown():
-            self.pub.publish(self.msg)
-            self.rate.sleep()
     
-    def hoverWithPID(self, z_ref, circle_radius, x_ref, y_ref):
+    def waypointsWithPID(self, waypoints, circle_radius):
         # REQUIRED TO OVERCOME INITIAL PUBLISHER BLOCK IMPLEMENTED BY USC
         self.msg.linear = Vector3(0, 0, 0)
         self.msg.angular = Vector3(0, 0, 0)
@@ -62,7 +31,7 @@ class Tester:
             self.pub.publish(self.msg)
             self.rate.sleep()
         
-        # Followed paper below section 3.1 for controller
+        # Followed this paper, section 3.1, for PID controller
         # https://arxiv.org/pdf/1608.05786.pdf
         # Altitude (z) controller gains and initialization
         self.z_feed_forward = 44705. # Eq. 3.1.8
@@ -82,26 +51,36 @@ class Tester:
         self.y_ki = -2.
         self.x_error_historical = 0.
         self.y_error_historical = 0.
-        self.x_before = 0
-        self.y_before = 0
+        self.x_before = 0.
+        self.y_before = 0.
+        self.x_cap = 30.
+        self.y_cap = 30.
 
         # Yaw rate controller gains
         self.yaw_kp = -20. # Table 3.1.3
 
-        # Set x and y reference values to takeoff position
+        # Set initial reference values
+        # x_ref = waypoints[0,0]; y_ref = waypoints[0,1]; z_ref = waypoints[0,2]
         origin = self.getPose('crazyflie4')
-        x_ref = origin.position.x
-        y_ref = origin.position.y
         self.pose_actual = origin
+        no_points = waypoints.shape[0]
+        print(no_points)
+        
+        # Hold yaw constant throughout
         yaw_ref = 0
 
         time_step = (1/self.hz)
+        counter = 0
+
         while not rospy.is_shutdown():
             # Get current drone pose
             self.pose_before = self.pose_actual
             self.pose_actual = self.getPose('crazyflie4')
             if math.isnan(self.pose_actual.orientation.x): # If nan is thrown, set to last known position
                 self.pose_actual = self.pose_before
+
+            # Set reference reference values
+            x_ref = waypoints[counter, 0]; y_ref = waypoints[counter, 1]; z_ref = waypoints[counter, 2]
 
             ### Altitude controller ###
 
@@ -167,6 +146,19 @@ class Tester:
             self.y_error_scaled = (self.y_diff * self.y_kp) \
                 + (self.y_error_historical * self.y_ki)
 
+            # Cap errors to prevent unstable maneuvers
+            if self.x_error_scaled >= self.x_cap:
+                self.x_error_scaled = self.x_cap
+            
+            elif self.x_error_scaled <= -self.x_cap:
+                self.x_error_scaled = -self.x_cap
+
+            if self.y_error_scaled >= self.y_cap:
+                self.y_error_scaled = self.y_cap
+            
+            elif self.y_error_scaled <= -self.y_cap:
+                self.y_error_scaled = -self.y_cap
+
             # Plublish commanded actions
             self.msg.linear.x = self.x_error_scaled
             self.msg.linear.y = self.y_error_scaled
@@ -188,6 +180,19 @@ class Tester:
             # print('x in body frame: {}'. format(self.x_e))
             # print('y in body frame: {}'. format(self.y_e))
 
+            # print('x ref: {} y ref: {} z ref: {}'.format(x_ref, y_ref, z_ref))
+
+            # (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)) and \
+            # (self.z_actual > z_ref) and \
+
+            # Waypoint incremeneter, last statement ensures drone will stay at last point
+            if (self.x_actual > (x_ref - circle_radius) and self.x_actual < (x_ref + circle_radius)) and \
+                (self.y_actual > (y_ref - circle_radius) and self.y_actual < (y_ref + circle_radius)) and \
+                counter < no_points - 1:
+                print('if statement triggered')
+                counter += 1
+
+
             self.pub.publish(self.msg)
             self.rate.sleep()
 
@@ -197,19 +202,49 @@ if __name__ == "__main__":
     try:
         test1 = Tester()
 
-        # # Command just thrust
-        # test1.commandThrust(30000)
+        # Back and forth
+        # waypoints = np.array([[0, 0, 0.4], 
+        # [2, 0, 0.4], 
+        # [-2, 0, 0.4],
+        # [2, 0, 0.4], 
+        # [-2, 0, 0.4],
+        # [2, 0, 0.4], 
+        # [-2, 0, 0.4]])
 
-        # # Command anything for a certain amount of time
-        # roll = 0
-        # pitch = 0
-        # thrust = 10000
-        # yaw_rate = 0
-        # time_seconds = 0.3
-        # test1.commandAction(roll, pitch, thrust, yaw_rate, time_seconds) 
+        # # Circle
+        # N = 10
+        # x = np.linspace(0.0, 2*np.pi, N)
+        # waypoints = np.zeros((N,3))
+        # for i in range(len(x)):
+        #     waypoints[i, 0] = np.sin(x[i])
+        #     waypoints[i, 1] = np.cos(x[i])
+        #     waypoints[i, 2] = 0.4
 
-        z_ref = 0.4; circle_radius = 0.1
-        test1.hoverWithPID(z_ref, circle_radius, 0.0, 0.0)
+        # room corners
+        waypoints = np.array([[0, 0, 0.5],
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5],
+        
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5],
+
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5],
+        
+        [-2.5, 1.25, 0.5], 
+        [-2.5, -1, 0.5], 
+        [2, -1, 0.5],
+        [2, 1.25, 0.5]
+        ])
+
+        circle_radius = 0.3
+        test1.waypointsWithPID(waypoints, circle_radius)
 
     except Exception as e:
         print(e)
