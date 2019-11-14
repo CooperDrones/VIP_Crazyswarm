@@ -202,6 +202,7 @@ if __name__ == "__main__":
     try:
         test1 = Tester()
 
+        # Back and forth
         # waypoints = np.array([[0, 0, 0.4], 
         # [2, 0, 0.4], 
         # [-2, 0, 0.4],
