@@ -120,8 +120,9 @@ class Tester:
             self.z_error_before = self.z_error
 
             # Sum PID errors and multiply by gains
-            self.z_error_scaled = (self.z_error * self.z_kp) + (self.z_error_historical * self.z_ki) \
-                + (self.z_error_der * self.z_kd) # Eq. 3.1.7
+            self.z_error_scaled = (self.z_error * self.z_kp) \
+            + (self.z_error_historical * self.z_ki) \
+            + (self.z_error_der * self.z_kd) # Eq. 3.1.7
 
             # publish to thrust command
             self.msg.linear.z = self.z_feed_forward + self.z_error_scaled
@@ -145,11 +146,13 @@ class Tester:
             self.x_error_world = x_ref - self.x_actual
             self.y_error_world = y_ref - self.y_actual
 
-            self.x_e = self.x_error_world * np.cos(self.yaw_angle) + self.y_error_world * np.sin(self.yaw_angle)
+            self.x_e = self.x_error_world * np.cos(self.yaw_angle) \
+            + self.y_error_world * np.sin(self.yaw_angle)
             self.u = (self.x_actual - self.x_before) / time_step
             self.x_before = self.x_actual
 
-            self.y_e = -(self.x_error_world * np.sin(self.yaw_angle)) + self.y_error_world * np.cos(self.yaw_angle)
+            self.y_e = -(self.x_error_world * np.sin(self.yaw_angle)) \
+            + self.y_error_world * np.cos(self.yaw_angle)
             self.v = (self.y_actual - self.y_before) / time_step
             self.y_before = self.y_actual
 

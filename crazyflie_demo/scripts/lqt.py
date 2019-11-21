@@ -8,6 +8,7 @@ from vicon_bridge.srv import viconGrabPose
 import numpy as np
 from scipy.spatial.transform import Rotation
 import math
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     N = 12
@@ -51,5 +52,8 @@ if __name__ == "__main__":
     B[11, 2] = np.sqrt(2) * d * (Ct/Ixx)
     B[11, 3] = np.sqrt(2) * d * (Ct/Ixx)
 
-    print(A)
-    print(B)
+    C = np.eye(12)
+
+    # print(A)
+    # print(B)
+    # print(C)
