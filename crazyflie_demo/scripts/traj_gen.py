@@ -59,10 +59,15 @@ def waypoints():
 if __name__ == '__main__':
     # waypoints()
 
+    np.array([0., 0., 0.5])
+    np.array([])
+
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('z')
+
+    ax.plot3D(pose.x, pose.y, pose.z)
 
     plt.show()

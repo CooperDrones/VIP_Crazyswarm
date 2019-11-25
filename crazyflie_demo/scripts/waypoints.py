@@ -189,14 +189,9 @@ class Tester:
 
             if counter == no_points: # Land that bitch
                 print('elif ran!!!!')
-                print('z {}'.format(self.z_actual))
-                # self.land()
-                z_ref = 0.1
-                self.msg.linear.z = 3000
-                if self.z_actual <= 0.05:
-                    self.msg.linear.z = 0
-                    break
+                break
             
+            print('couner is: {}'.format(counter))
             self.pub.publish(self.msg)
             self.rate.sleep()
 
@@ -227,7 +222,8 @@ if __name__ == "__main__":
     rospy.init_node('test')
 
     try:
-        test1 = Tester()
+        drone1 = Tester()
+        # drone2 = Tester()
 
         # Back and forth
         # waypoints = np.array([[0, 0, 0.4], 
@@ -271,7 +267,8 @@ if __name__ == "__main__":
         # ])
 
         # hover to origin
-        waypoints = np.array([[0, 0, 0.5]])
+        waypoints = np.array([[0, 0, 0.5],
+        [0.0, 0.0, 0.0]])
 
         # waypoints with bspline
         # BSN = 2  # B Spline order
@@ -289,7 +286,8 @@ if __name__ == "__main__":
         #     waypoints[i, 2] = 0.5 # z
 
         circle_radius = 0.1
-        test1.waypointsWithPID(waypoints, circle_radius)
+        drone1.waypointsWithPID(waypoints, circle_radius)
+        # drone2.waypointsWithPID(waypoints, circle_radius, 'crazyflie5')
 
     except Exception as e:
         print(e)
