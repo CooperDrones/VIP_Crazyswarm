@@ -8,6 +8,8 @@ from vicon_bridge.srv import viconGrabPose
 import numpy as np
 from scipy.spatial.transform import Rotation
 import math
+import scipy.interpolate as si
+import matplotlib.pyplot as plt
 
 class Tester:
     def __init__(self):
@@ -22,7 +24,7 @@ class Tester:
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
         self.pose1 = self.pose.pose.pose
         return self.pose1
-    
+        
     def waypointsWithPID(self, waypoints, circle_radius):
         # REQUIRED TO OVERCOME INITIAL PUBLISHER BLOCK IMPLEMENTED BY USC
         self.msg.linear = Vector3(0, 0, 0)
@@ -34,10 +36,10 @@ class Tester:
         # Followed this paper, section 3.1, for PID controller
         # https://arxiv.org/pdf/1608.05786.pdf
         # Altitude (z) controller gains and initialization
-        self.z_feed_forward = 44705. # Eq. 3.1.8
+        self.z_feed_forward = 44000. # Eq. 3.1.8 - a bit less since we do not use UWB module
         self.z_kp = 11000. # Table 3.1.3
         self.z_ki = 3500.
-        self.z_kd = 9000
+        self.z_kd = 9000.
         self.z_error_historical = 0.
         self.thrust_cap_high = 15000 # TODO add caps for all commands
         self.thrust_cap_low = -20000
@@ -64,7 +66,6 @@ class Tester:
         origin = self.getPose('crazyflie4')
         self.pose_actual = origin
         no_points = waypoints.shape[0]
-        print(no_points)
         
         # Hold yaw constant throughout
         yaw_ref = 0
@@ -146,13 +147,7 @@ class Tester:
             self.y_error_scaled = (self.y_diff * self.y_kp) \
                 + (self.y_error_historical * self.y_ki)
 
-            # Cap errors to prevent unstable maneuvers
-            if self.x_error_scaled >= self.x_cap:
-                self.x_error_scaled = self.x_cap
-            
-            elif self.x_error_scaled <= -self.x_cap:
-                self.x_error_scaled = -self.x_cap
-
+            # Cap errors to prevent unstable maneuvek
             if self.y_error_scaled >= self.y_cap:
                 self.y_error_scaled = self.y_cap
             
@@ -178,8 +173,7 @@ class Tester:
             # print("The orientation is: {} with type {}".format(self.quat_actual[0], type(self.quat_actual[0])))
             # print('Yaw angle: {}'.format(self.yaw_angle))
             # print('x in body frame: {}'. format(self.x_e))
-            # print('y in body frame: {}'. format(self.y_e))
-
+            # print('y in body frame: {}c
             # print('x ref: {} y ref: {} z ref: {}'.format(x_ref, y_ref, z_ref))
 
             # (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)) and \
@@ -188,19 +182,48 @@ class Tester:
             # Waypoint incremeneter, last statement ensures drone will stay at last point
             if (self.x_actual > (x_ref - circle_radius) and self.x_actual < (x_ref + circle_radius)) and \
                 (self.y_actual > (y_ref - circle_radius) and self.y_actual < (y_ref + circle_radius)) and \
-                counter < no_points - 1:
-                print('if statement triggered')
+                (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)):
+                # counter < no_points - 1: # Hover at last point in waypoints array
                 counter += 1
+                print('found next point!!')
 
-
+            if counter == no_points: # Land that bitch
+                print('elif ran!!!!')
+                break
+            
+            print('couner is: {}'.format(counter))
             self.pub.publish(self.msg)
             self.rate.sleep()
+
+def bspline_planning(x, y, sn):
+    """
+    Path Plannting with B-Spline
+    author: Atsushi Sakai (@Atsushi_twi)
+    """
+    t = range(len(x))
+    x_tup = si.splrep(t, x, k=BSN)
+    y_tup = si.splrep(t, y, k=BSN)
+
+    x_list = list(x_tup)
+    xl = x.tolist()
+    x_list[1] = xl + [0.0, 0.0, 0.0, 0.0]
+
+    y_list = list(y_tup)
+    yl = y.tolist()
+    y_list[1] = yl + [0.0, 0.0, 0.0, 0.0]
+
+    ipl_t = np.linspace(0.0, len(x) - 1, sn)
+    rx = si.splev(ipl_t, x_list)
+    ry = si.splev(ipl_t, y_list)
+
+    return rx, ry
 
 if __name__ == "__main__":
     rospy.init_node('test')
 
     try:
-        test1 = Tester()
+        drone1 = Tester()
+        # drone2 = Tester()
 
         # Back and forth
         # waypoints = np.array([[0, 0, 0.4], 
@@ -220,31 +243,51 @@ if __name__ == "__main__":
         #     waypoints[i, 1] = np.cos(x[i])
         #     waypoints[i, 2] = 0.4
 
-        # room corners
+        # # room corners
+        # waypoints = np.array([[0, 0, 0.5],
+        # [-2.5, 1.25, 0.5], 
+        # [-2.5, -1, 0.5], 
+        # [2, -1, 0.5],
+        # [2, 1.25, 0.5],
+        
+        # [-2.5, 1.25, 0.5], 
+        # [-2.5, -1, 0.5], 
+        # [2, -1, 0.5],
+        # [2, 1.25, 0.5],
+
+        # [-2.5, 1.25, 0.5], 
+        # [-2.5, -1, 0.5], 
+        # [2, -1, 0.5],
+        # [2, 1.25, 0.5],
+        
+        # [-2.5, 1.25, 0.5], 
+        # [-2.5, -1, 0.5], 
+        # [2, -1, 0.5],
+        # [2, 1.25, 0.5]
+        # ])
+
+        # hover to origin
         waypoints = np.array([[0, 0, 0.5],
-        [-2.5, 1.25, 0.5], 
-        [-2.5, -1, 0.5], 
-        [2, -1, 0.5],
-        [2, 1.25, 0.5],
-        
-        [-2.5, 1.25, 0.5], 
-        [-2.5, -1, 0.5], 
-        [2, -1, 0.5],
-        [2, 1.25, 0.5],
+        [0.0, 0.0, 0.0]])
 
-        [-2.5, 1.25, 0.5], 
-        [-2.5, -1, 0.5], 
-        [2, -1, 0.5],
-        [2, 1.25, 0.5],
-        
-        [-2.5, 1.25, 0.5], 
-        [-2.5, -1, 0.5], 
-        [2, -1, 0.5],
-        [2, 1.25, 0.5]
-        ])
+        # waypoints with bspline
+        # BSN = 2  # B Spline order
 
-        circle_radius = 0.3
-        test1.waypointsWithPID(waypoints, circle_radius)
+        # x = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+        # y = np.array([-0.5,  1.5, -1.5, 1.5, -0.5])
+        # sn = 100  # sampling number
+
+        # rx, ry = bspline_planning(x, y, sn)
+
+        # waypoints = np.zeros((sn, 3))
+        # for i in range(len(rx)):
+        #     waypoints[i, 0] = rx[i] # x
+        #     waypoints[i, 1] = ry[i] # y
+        #     waypoints[i, 2] = 0.5 # z
+
+        circle_radius = 0.1
+        drone1.waypointsWithPID(waypoints, circle_radius)
+        # drone2.waypointsWithPID(waypoints, circle_radius, 'crazyflie5')
 
     except Exception as e:
         print(e)
