@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 class Tester:
     def __init__(self):
         self.msg = Twist()
-        self.hz = 30.0 # if not set to 100, will not broadcast
+        self.hz = 30.0
         self.rate = rospy.Rate(self.hz)
         self.pub = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
         rospy.wait_for_service('/vicon/grab_vicon_pose')
@@ -33,12 +33,12 @@ class Tester:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
-    def hover(self, x_ref, z_ref, circle_radius):
+    def hover(self, x_ref, y_ref, z_ref, circle_radius):
         print('Start hover controller')
         # Followed this paper, section 3.1, for PID controller
         # https://arxiv.org/pdf/1608.05786.pdf
         # Altitude (z) controller gains and initialization
-        self.z_feed_forward = 44000. # Eq. 3.1.8 - a bit less since we do not use UWB module
+        self.z_feed_forward = 40000. # Eq. 3.1.8 - a bit less since we do not use UWB module
         self.z_kp = 11000. # Table 3.1.3
         self.z_ki = 3500.
         self.z_kd = 9000.
@@ -57,20 +57,19 @@ class Tester:
         self.y_error_historical = 0.
         self.x_before = 0.
         self.y_before = 0.
-        self.x_cap = 30.
-        self.y_cap = 30.
+        self.x_cap = 25.
+        self.y_cap = 25.
 
         # Yaw rate controller gains
-        self.yaw_kp = -2. # Table 3.1.3
+        self.yaw_kp = -4. # Table 3.1.3
 
         # Set initial reference values
         origin = self.getPose('crazyflie4')
         self.pose_actual = origin
         
         # Hold yaw constant throughout
-        yaw_ref = 0
+        yaw_ref = 0.0
         time_step = (1/self.hz)
-        y_ref = 0.0
 
         while not rospy.is_shutdown():
             # Get current drone pose
@@ -170,8 +169,8 @@ class Tester:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
-    def pathTracker(self, x_ref, z_ref, u_ref, distance):
-        print('Started velocity controller!')
+    def uPathTracker(self, x_ref, y_ref, z_ref, u_ref):
+        print('Started u controller!')
         
         # Set initial reference values
         origin = self.getPose('crazyflie4')
@@ -180,7 +179,8 @@ class Tester:
         # Hold yaw constant throughout
         yaw_ref = 0
         time_step = (1/self.hz)
-        y_ref = 0.0
+
+        self.x_before = 0
 
         self.u_kp = 1
 
@@ -222,12 +222,13 @@ class Tester:
 
             # # x-position controller
             # self.x_e = self.x_error_world * np.cos(self.yaw_angle) + self.y_error_world * np.sin(self.yaw_angle)
-            # self.u = (self.x_actual - self.x_before) / time_step
-            # self.x_before = self.x_actual
+            self.u = (self.x_actual - self.x_before) / time_step
+            self.x_before = self.x_actual
 
             # u-velocitty controller
             self.u_error = u_ref - self.u
             self.msg.linear.x = self.u_kp * self.u_error
+            # print('u is: {}'.format(self.u))
 
             # y-position controller
             self.y_e = -(self.x_error_world * np.sin(self.yaw_angle)) + self.y_error_world * np.cos(self.yaw_angle)
@@ -264,10 +265,115 @@ class Tester:
             self.yaw_error_scaled = self.yaw_kp * self.yaw_error
             self.msg.angular.z = self.yaw_error_scaled
 
-            # Kills hover once at stable position last statement ensures drone will stay at last point
-                        # Kills hover once at stable position last statement ensures drone will stay at last point
-            if self.x_actual > x_ref:
-                print('Found the velovity set point!')
+            # Kills hover once at stable position last statement 
+            # ensures drone will stay at last point
+            offset = 0.05
+            if (self.x_actual < x_ref + offset) and (self.x_actual > x_ref - offset):
+                print('Found the velocity set point!')
+                break
+            
+            self.pub.publish(self.msg)
+            self.rate.sleep()
+
+    def vPathTracker(self, x_ref, y_ref, z_ref, v_ref):
+        print('Started v controller!')
+        
+        # Set initial reference values
+        origin = self.getPose('crazyflie4')
+        self.pose_actual = origin
+        
+        # Hold yaw constant throughout
+        yaw_ref = 0
+        time_step = (1/self.hz)
+
+        self.v_kp = -1
+        self.y_before = 0
+
+        while not rospy.is_shutdown():
+            # Get current drone pose
+            self.pose_before = self.pose_actual
+            self.pose_actual = self.getPose('crazyflie4')
+            if math.isnan(self.pose_actual.orientation.x): # If nan is thrown, set to last known position
+                self.pose_actual = self.pose_before
+
+            ### Altitude controller ###
+            self.z_actual = self.pose_actual.position.z
+            self.z_error = z_ref - self.z_actual
+            if self.z_error_historical <= self.z_error_cap:
+                self.z_error_historical += (self.z_error * time_step)
+            self.z_error_der = (self.z_error - self.z_error_before) / time_step
+            self.z_error_before = self.z_error
+            self.z_error_scaled = (self.z_error * self.z_kp) + (self.z_error_historical * self.z_ki) \
+                + (self.z_error_der * self.z_kd) # Eq. 3.1.7
+            self.msg.linear.z = self.z_feed_forward + self.z_error_scaled
+
+            ### xy position controller ###
+
+            # get true x and y values
+            self.x_actual = self.pose_actual.position.x
+            self.y_actual = self.pose_actual.position.y
+
+            # Obtain yaw angle from quaternion
+            self.quat_actual = [self.pose_actual.orientation.x, self.pose_actual.orientation.y, \
+                self.pose_actual.orientation.z, self.pose_actual.orientation.w]
+            R = Rotation.from_quat(self.quat_actual)
+            self.global_x = R.apply([1, 0, 0]) # project to world x-axis
+            self.yaw_angle = np.arctan2(np.cross([1, 0, 0], self.global_x)[2], \
+                np.dot(self.global_x, [1, 0, 0]))
+            
+            # obtain position error
+            self.x_error_world = x_ref - self.x_actual
+            self.y_error_world = y_ref - self.y_actual
+
+            # x-position controller
+            self.x_e = self.x_error_world * np.cos(self.yaw_angle) + self.y_error_world * np.sin(self.yaw_angle)
+            self.u = (self.x_actual - self.x_before) / time_step
+            self.x_before = self.x_actual
+
+            # # y-position controller
+            # self.y_e = -(self.x_error_world * np.sin(self.yaw_angle)) + self.y_error_world * np.cos(self.yaw_angle)
+            self.v = (self.y_actual - self.y_before) / time_step
+            self.y_before = self.y_actual
+
+            # v-velocitty controller
+            self.v_error = v_ref - self.v
+            self.msg.linear.y = self.v_kp * self.v_error
+
+            # Eq. 3.1.11 and Eq. 3.1.12
+            self.x_diff = self.x_e - self.u
+            self.y_diff = self.y_e - self.v
+
+            # Find integral component - store historical error
+            self.x_error_historical += (self.x_diff * time_step)
+            self.y_error_historical += (self.y_diff * time_step)
+
+            # Sum PI errors and multiply by gains
+            self.x_error_scaled = (self.x_diff * self.x_kp) \
+                + (self.x_error_historical * self.x_ki)
+            self.y_error_scaled = (self.y_diff * self.y_kp) \
+                + (self.y_error_historical * self.y_ki)
+
+            # Cap errors to prevent unstable maneuvers
+            if self.y_error_scaled >= self.y_cap:
+                self.y_error_scaled = self.y_cap
+            
+            elif self.y_error_scaled <= -self.y_cap:
+                self.y_error_scaled = -self.y_cap
+
+            # Plublish commanded actions
+            self.msg.linear.x = self.x_error_scaled
+            # self.msg.linear.y = self.y_error_scaled
+
+            ### Yaw-rate controller Eq. 3.1.13 ###
+            self.yaw_error = yaw_ref - self.yaw_angle
+            self.yaw_error_scaled = self.yaw_kp * self.yaw_error
+            self.msg.angular.z = self.yaw_error_scaled
+
+            # Kills hover once at stable position last statement 
+            # ensures drone will stay at last point
+            offset = 0.1
+            if (self.y_actual < y_ref + offset) and (self.y_actual > y_ref - offset):
+                print('Found the velocity set point!')
                 break
             
             self.pub.publish(self.msg)
@@ -281,18 +387,52 @@ if __name__ == "__main__":
 
         drone1.dummyForLoop()
 
-        x_ref = -1.5 # m
+        x_ref = -0.75 # m
+        y_ref = -0.75 # m
         z_ref = 0.4 # m
-        circle_radius = 0.03 # m
+        circle_radius = 0.05 # m
 
-        drone1.hover(x_ref, z_ref, circle_radius)
+        drone1.hover(x_ref, y_ref, z_ref, circle_radius)
 
-        u_ref = 0.5 # m/s
-        distance = 2.5 # m
-        x_ref += distance
+        u_ref = 8 # m/s
+        x_ref = 0.75
+        drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
 
-        drone1.pathTracker(x_ref, z_ref, u_ref, distance)
-        drone1.hover(x_ref-0.3, z_ref, circle_radius)
+        # u_ref = -2 # m/s
+        # x_ref = -1.0 # m
+        # drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+        v_ref = 8 # m/s
+        y_ref = 0.75 # m/s
+        drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+        u_ref = -u_ref # m/s
+        x_ref = -x_ref # m
+        drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+        v_ref = -v_ref # m/s
+        y_ref = -y_ref # m/s
+        drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+        u_ref = -u_ref # m/s
+        x_ref = -x_ref # m
+        drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+        v_ref = -v_ref # m/s
+        y_ref = -y_ref # m/s
+        drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+        u_ref = -u_ref # m/s
+        x_ref = -x_ref # m
+        drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+        v_ref = -v_ref # m/s
+        y_ref = -y_ref # m/s
+        drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+        # land the drone
+        z_ref = 0.15
+        drone1.hover(x_ref, y_ref, z_ref, circle_radius)
 
     except Exception as e:
         print(e)

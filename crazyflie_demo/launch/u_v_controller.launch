@@ -16,6 +16,6 @@
 
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 
-  <node name="test" pkg="crazyflie_demo" type="u_controller.py" output="screen"> </node>
+  <node name="test" pkg="crazyflie_demo" type="u_v_controller.py" output="screen"> </node>
 
 </launch>
