@@ -181,8 +181,7 @@ class Tester:
         time_step = (1/self.hz)
 
         self.x_before = 0
-
-        self.u_kp = 1
+        self.u_kp = 5
 
         while not rospy.is_shutdown():
             # Get current drone pose
@@ -228,7 +227,7 @@ class Tester:
             # u-velocitty controller
             self.u_error = u_ref - self.u
             self.msg.linear.x = self.u_kp * self.u_error
-            # print('u is: {}'.format(self.u))
+            print('u is: {}'.format(self.u))
 
             # y-position controller
             self.y_e = -(self.x_error_world * np.sin(self.yaw_angle)) + self.y_error_world * np.cos(self.yaw_angle)
@@ -286,7 +285,7 @@ class Tester:
         yaw_ref = 0
         time_step = (1/self.hz)
 
-        self.v_kp = -1
+        self.v_kp = -5
         self.y_before = 0
 
         while not rospy.is_shutdown():
@@ -334,6 +333,7 @@ class Tester:
             # self.y_e = -(self.x_error_world * np.sin(self.yaw_angle)) + self.y_error_world * np.cos(self.yaw_angle)
             self.v = (self.y_actual - self.y_before) / time_step
             self.y_before = self.y_actual
+            print('u is: {}'.format(self.v))
 
             # v-velocitty controller
             self.v_error = v_ref - self.v
@@ -394,7 +394,7 @@ if __name__ == "__main__":
 
         drone1.hover(x_ref, y_ref, z_ref, circle_radius)
 
-        u_ref = 8 # m/s
+        u_ref = 1.5 # m/s
         x_ref = 0.75
         drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
 
@@ -402,7 +402,7 @@ if __name__ == "__main__":
         # x_ref = -1.0 # m
         # drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
 
-        v_ref = 8 # m/s
+        v_ref = 1.5 # m/s
         y_ref = 0.75 # m/s
         drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
 
