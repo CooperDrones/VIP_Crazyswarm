@@ -100,22 +100,18 @@ class Tester:
             R = Rotation.from_quat(quat)
             x_global = R.apply([1, 0, 0]) # project to world x-axis
             yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
-
+            
             x_b = x * np.cos(yaw) + y * np.sin(yaw) # Get x in body frame
             u = (x_b - x_b_prev) / self.time_step # u is x-vel in body frame
-            x_b_prev = x_b
+            x_b_prev = x_b # Reset previous val
             y_b = -(x * np.sin(yaw)) + y * np.cos(yaw) # Get y in body frame
             v = (y_b - y_b_prev) / self.time_step # v is y-vel in body frame
-            y_b_prev = y_b
-
+            y_b_prev = y_b # Reset previous val
             xe_b = xe * np.cos(yaw) + ye * np.sin(yaw) # Get errors in body frame
             ye_b = -(xe * np.sin(yaw)) + ye * np.cos(yaw)
-
-            xe_b_hist += ((xe_b - u) * self.time_step)
+            xe_b_hist += ((xe_b - u) * self.time_step) # Accumulate and store histroical error
             ye_b_hist += ((ye_b - v) * self.time_step)
-
-            # Sum PI errors and multiply by gains Eq. 3.1.11 and Eq. 3.1.12
-            xe_b_tot = ((xe_b - u) * self.x_kp) + (xe_b_hist * self.x_ki)
+            xe_b_tot = ((xe_b - u) * self.x_kp) + (xe_b_hist * self.x_ki) # Eq. 3.1.11 and Eq. 3.1.12
             ye_b_tot = ((ye_b - v) * self.y_kp) + (ye_b_hist * self.y_ki)
 
             # Cap roll (y) and pitch (x) to prevent unstable maneuvers
@@ -131,12 +127,12 @@ class Tester:
             self.msg.linear.x = xe_b_tot
             self.msg.linear.y = ye_b_tot
 
-            ### Yaw-rate controller Eq. 3.1.13 ###
+            ### yaw-rate controller Eq. 3.1.13 ###
             yawe = yawr - yaw
             yawe_tot = self.yaw_kp * yawe
             self.msg.angular.z = yawe_tot
 
-            # Kills hover once at stable position
+            ### Goal behavior ###
             if (x > (xr - goal_r) and x < (xr + goal_r)) and \
                 (y > (yr - goal_r) and y < (yr + goal_r)) and \
                 (z > (zr - goal_r) and z < (zr + goal_r)):
