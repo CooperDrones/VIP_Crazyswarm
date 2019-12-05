@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation
 import math
 import scipy.interpolate as si
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 
 class Tester:
     def __init__(self):
@@ -43,9 +44,9 @@ class Tester:
         # Yaw rate controller gains
         self.yaw_kp = -20. # Table 3.1.3
 
-        # Velocity controller gains
-        self.u_kp = 5
-        self.v_kp = -5
+        # Plotter initialization
+        start = self.getPose('crazyflie4')
+        self.to_plot = np.array([start.position.x, start.position.y, start.position.z])
 
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
@@ -100,7 +101,7 @@ class Tester:
             R = Rotation.from_quat(quat)
             x_global = R.apply([1, 0, 0]) # project to world x-axis
             yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
-            
+
             x_b = x * np.cos(yaw) + y * np.sin(yaw) # Get x in body frame
             u = (x_b - x_b_prev) / self.time_step # u is x-vel in body frame
             x_b_prev = x_b # Reset previous val
@@ -139,25 +140,107 @@ class Tester:
                 print('Found the hover setpoint!')
                 break
 
+            # Add to plotter
+            to_plot_add = np.array([x, y, z])
+            self.to_plot = np.vstack((self.to_plot, to_plot_add))
+
             self.pub.publish(self.msg)
             self.rate.sleep()
+
+    def plotTraj(self, traj):
+        run_number = 1
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        ax.set_title('Trial run {}'.format(run_number))
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+        ax.scatter3D(traj[:, 0], traj[:, 1], traj[:, 2], marker = 'x', c = 'r', label = 'waypoints')
+        ax.plot3D(traj[:, 0], traj[:, 1], traj[:, 2], c = 'b', label = 'trajectory')
+        ax.plot3D(self.to_plot[:, 0], self.to_plot[:, 1], self.to_plot[:, 2], c = 'g', label = 'drone path')
+
+def genConstVelTraj(vel):
+    """
+    Generate a trajectory 
+    """
+    t = 1./30.
+    N = 10
+    x = np.linspace(-0.5, 0.5, N)
+    y = 0.5 * x
+    
+    # Count distance of all linearized segments
+    dist = 0.
+    u = np.zeros((N, 1))
+    v = np.zeros((N, 1))
+    for i in range(N - 1):
+        dist += np.sqrt((x[i+1] - x[i]) + (y[i+1] - y[i]))
+        yaw = np.arctan2((y[i+1] - y[i]), (x[i+1] - x[i]))
+        u[i, 0] = vel * np.cos(yaw)
+        v[i, 0] = vel * np.sin(yaw)
+    
+    finish_time = dist/vel
+    print('Drone should complete traj in {} seconds'.format(finish_time))
+
+    # arrays are going to be short one row - add row of zeros
+    # zeros = np.zeros((1, 1))
+    # u = np.vstack((u, zeros))
+    # print(u.shape)
+    # v = np.vstack((v, zeros))
+    # print(v.shape)
+
+    x = x.reshape(-1, 1)
+    y = y.reshape(-1, 1)
+    z = np.full((N, 1), 0.4)
+    w = np.zeros((N, 1))
+    yaw = np.zeros((N, 1))
+    t = np.full((N, 1), t)
+
+    traj = np.hstack((x, y, z, u, v, w, yaw, t))
+    return traj
+
+def plotTrajTheo(traj):
+    run_number = 1
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')
+    ax.set_title('Trial run {}'.format(run_number))
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.scatter3D(traj[:, 0], traj[:, 1], traj[:, 2], marker = 'x', c = 'r', label = 'waypoints')
+    ax.plot3D(traj[:, 0], traj[:, 1], traj[:, 2], c = 'b', label = 'trajectory')
 
 def main():
     rospy.init_node('test')
 
     try:
+        vel = 1.5 # [m/s]
+        traj = genConstVelTraj(vel)
+        # plotTrajTheo(traj)
+
+        N = traj.shape[0]
+        # print(traj[0,:])
+
         drone1 = Tester()
 
         drone1.dummyForLoop()
 
         # Hover at origin
-        xr = 0.0; yr = 0.0; zr = 0.4 # [m]
-        goal_r = 0.05
-        drone1.hover(xr, yr, zr, goal_r)
+        # xr = 0.0; yr = 0.0; zr = 0.4 # [m]
+        
+        goal_r = 0.1
+        drone1.hover(traj[0, 0], traj[0, 1], traj[0, 2], goal_r)
+
+        # Hover at finish
+        drone1.hover(traj[N-1, 0], traj[N-1, 1], traj[N-1, 2], goal_r)
 
         # land the drone
-        zr = 0.15
-        drone1.hover(xr, yr, zr, goal_r)
+        zr = 0.15 # [m]
+        drone1.hover(traj[N-1, 0], traj[N-1, 1], zr, goal_r)
+
+        drone1.plotTraj(traj)
+
+        plt.legend(loc='best')
+        plt.show()
 
     except Exception as e:
         print(e)
