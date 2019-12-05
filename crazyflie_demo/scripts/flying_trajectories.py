@@ -101,39 +101,16 @@ class Tester:
             x_global = R.apply([1, 0, 0]) # project to world x-axis
             yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
 
-            # # tranlate xy errors to body frame
-            # xe_b = xe * np.cos(yaw) + ye * np.sin(yaw)
-            # u = (x - x_b_prev) / self.time_step
-            # x_b_prev = x
-
-            # ye_b = -(xe * np.sin(yaw)) + ye * np.cos(yaw)
-            # v = (y - y_b_prev) / self.time_step
-            # y_b_prev = y
-
-            # calculate u and v
-            x_b = x * np.cos(yaw) + y * np.sin(yaw)
-            u = (x_b - x_b_prev) / self.time_step
+            x_b = x * np.cos(yaw) + y * np.sin(yaw) # Get x in body frame
+            u = (x_b - x_b_prev) / self.time_step # u is x-vel in body frame
             x_b_prev = x_b
-
-            y_b = -(x * np.sin(yaw)) + y * np.cos(yaw)
-            v = (y_b - y_b_prev) / self.time_step
+            y_b = -(x * np.sin(yaw)) + y * np.cos(yaw) # Get y in body frame
+            v = (y_b - y_b_prev) / self.time_step # v is y-vel in body frame
             y_b_prev = y_b
 
-            # # u-velocitty controller
-            # ue = ur - u
-            # self.msg.linear.x = self.u_kp * ue
-            # print('u is: {}'.format(u))
-
-            # # v-velocitty controller
-            # ve = vr - v
-            # self.msg.linear.y = self.v_kp * ve
-            # print('v is: {}'.format(v))
-
-            # Calculate error in body frame
-            xe_b = xe * np.cos(yaw) + ye * np.sin(yaw)
+            xe_b = xe * np.cos(yaw) + ye * np.sin(yaw) # Get errors in body frame
             ye_b = -(xe * np.sin(yaw)) + ye * np.cos(yaw)
 
-            # Calculate xy histroical error
             xe_b_hist += ((xe_b - u) * self.time_step)
             ye_b_hist += ((ye_b - v) * self.time_step)
 
@@ -141,8 +118,13 @@ class Tester:
             xe_b_tot = ((xe_b - u) * self.x_kp) + (xe_b_hist * self.x_ki)
             ye_b_tot = ((ye_b - v) * self.y_kp) + (ye_b_hist * self.y_ki)
 
-            if xe_b_tot >= self.x_cap: # Cap errors to prevent unstable maneuvers
+            # Cap roll (y) and pitch (x) to prevent unstable maneuvers
+            if xe_b_tot >= self.x_cap:
                 xe_b_tot = self.x_cap
+            elif xe_b_tot <= -self.x_cap:
+                xe_b_tot = -self.x_cap
+            elif ye_b_tot >= self.y_cap:
+                ye_b_tot = self.y_cap            
             elif ye_b_tot <= -self.y_cap:
                 ye_b_tot = -self.y_cap
 
