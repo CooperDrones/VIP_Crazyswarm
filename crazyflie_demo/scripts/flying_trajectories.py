@@ -38,8 +38,8 @@ class Tester:
         self.x_ki = 2.
         self.y_kp = -10.
         self.y_ki = -2.
-        self.x_cap = 20.
-        self.y_cap = 20.
+        self.x_cap = 15.
+        self.y_cap = 15.
 
         # Yaw rate controller gains
         self.yaw_kp = -20. # Table 3.1.3
@@ -134,9 +134,10 @@ class Tester:
             self.msg.angular.z = yawe_tot
 
             ### Goal behavior ###
+            offset = 0.05 # additional z boundary to speed tests
             if (x > (xr - goal_r) and x < (xr + goal_r)) and \
                 (y > (yr - goal_r) and y < (yr + goal_r)) and \
-                (z > (zr - goal_r) and z < (zr + goal_r)):
+                (z > (zr - goal_r - offset) and z < (zr + goal_r + offset)):
                 print('Found the hover setpoint!')
                 break
 
@@ -145,6 +146,97 @@ class Tester:
             self.to_plot = np.vstack((self.to_plot, to_plot_add))
 
             self.pub.publish(self.msg)
+            self.rate.sleep()
+
+    def followTraj(self, traj):
+        origin = self.getPose('crazyflie4')
+        pose = origin
+        ze_hist = 0.
+        ze_prev = 0.
+        x_b_prev = 0.
+        y_b_prev = 0.
+
+        while not rospy.is_shutdown():
+            idx_now = 0
+
+            # Get current drone pose
+            pose_prev = pose
+            pose = self.getPose('crazyflie4')
+            if math.isnan(pose.orientation.x): # If nan is thrown, set to last known position
+                pose = pose_prev
+            
+            # Get drone position
+            x = pose.position.x; y = pose.position.y; z = pose.position.z 
+
+            ### Keep same altitude controller ###
+            z = pose.position.z # Get true z value
+            ze = traj[idx_now, 2] - z # Get error
+            if ze_hist <= self.ze_cap: # prevent wind-up
+                ze_hist += (ze * self.time_step) # Find integral component
+            ze_der = (ze - ze_prev) / self.time_step # Find derivative component
+            ze_prev = ze
+            ze_tot = (ze * self.z_kp) + (ze_hist * self.z_ki) \
+                + (ze_der * self.z_kd) # Eq. 3.1.7 Sum PID errors and multiply by gains
+            self.msg.linear.z = self.z_feed_forward + ze_tot
+
+            # Obtain yaw angle from quaternion
+            quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+            R = Rotation.from_quat(quat)
+            x_global = R.apply([1, 0, 0]) # project to world x-axis
+            yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
+
+            ### yaw-rate controller Eq. 3.1.13 ###
+            yawe = traj[idx_now, 6] - yaw
+            yawe_tot = self.yaw_kp * yawe
+            self.msg.angular.z = yawe_tot
+
+            # Get velocities in body frame 
+            # TODO check whether to use body or world frame
+            x_b = x * np.cos(yaw) + y * np.sin(yaw) # Get x in body frame
+            u = (x_b - x_b_prev) / self.time_step # u is x-vel in body frame
+            x_b_prev = x_b # Reset previous val
+            y_b = -(x * np.sin(yaw)) + y * np.cos(yaw) # Get y in body frame
+            v = (y_b - y_b_prev) / self.time_step # v is y-vel in body frame
+            y_b_prev = y_b # Reset previous val
+
+
+
+            ### Traj following ###
+            r = np.array([x, y]) # current position vector
+            rdot = np.array([u, v]) # current velocity vector
+
+            # TODO find closest point in trajectory
+            idx_next = idx_now + 1
+            r_T = np.array([traj[idx_now, 0], traj[idx_now, 1]]) # desired position vector
+            rdot_T = np.array([traj[idx_now, 3], traj[idx_now, 4]])
+
+            tang_vect = np.array([traj[idx_next, 0] - traj[idx_now, 0], traj[idx_next, 1] - traj[idx_now, 1]])
+            tangent = tang_vect / np.linalg.norm(tang_vect)
+            
+            normal = np.empty_like(tang_vect)
+            normal[0] = -tangent[1]
+            normal[1] = tangent[0]
+            normal = normal / np.linalg.norm(normal)
+
+            # TODO check that errors are correct 
+            # Eq. 9 in the following paper:
+            # http://ai.stanford.edu/~gabeh/papers/GNC08_QuadTraj.pdf
+            e_ct = np.matmul((r_T - r), normal) # cross-track position error
+            edot_ct = np.matmul(-rdot, normal) # cross-track velocity error
+            edot_at = np.matmul((rdot_T - rdot), tangent) # along-track velocity error
+
+            print('e_ct: {}, edot_ct: {}, edot_at: {}'.format(e_ct, edot_ct, edot_at))
+
+            # TODO 
+
+            # TODO find closest point in trajectory and increment index
+
+
+            # # Add to plotter
+            # to_plot_add = np.array([x, y, z])
+            # self.to_plot = np.vstack((self.to_plot, to_plot_add))
+
+            # self.pub.publish(self.msg)
             self.rate.sleep()
 
     def plotTraj(self, traj):
@@ -181,12 +273,11 @@ def genConstVelTraj(vel):
     finish_time = dist/vel
     print('Drone should complete traj in {} seconds'.format(finish_time))
 
-    # arrays are going to be short one row - add row of zeros
+    # # arrays are going to be short one row - add row of zeros
     # zeros = np.zeros((1, 1))
     # u = np.vstack((u, zeros))
     # print(u.shape)
     # v = np.vstack((v, zeros))
-    # print(v.shape)
 
     x = x.reshape(-1, 1)
     y = y.reshape(-1, 1)
@@ -224,18 +315,18 @@ def main():
 
         drone1.dummyForLoop()
 
-        # Hover at origin
-        # xr = 0.0; yr = 0.0; zr = 0.4 # [m]
-        
-        goal_r = 0.1
-        drone1.hover(traj[0, 0], traj[0, 1], traj[0, 2], goal_r)
+        # goal_r = 0.01
+        # drone1.hover(traj[0, 0], traj[0, 1], traj[0, 2], goal_r)
 
-        # Hover at finish
-        drone1.hover(traj[N-1, 0], traj[N-1, 1], traj[N-1, 2], goal_r)
+        # Fly a trajectory
+        drone1.followTraj(traj)
 
-        # land the drone
-        zr = 0.15 # [m]
-        drone1.hover(traj[N-1, 0], traj[N-1, 1], zr, goal_r)
+        # # Hover at finish
+        # drone1.hover(traj[N-1, 0], traj[N-1, 1], traj[N-1, 2], goal_r)
+
+        # # land the drone
+        # zr = 0.15 # [m]
+        # drone1.hover(traj[N-1, 0], traj[N-1, 1], zr, goal_r)
 
         drone1.plotTraj(traj)
 
