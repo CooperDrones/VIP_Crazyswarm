@@ -11,42 +11,35 @@ import math
 import scipy.interpolate as si
 import matplotlib.pyplot as plt
 from std_msgs.msg import Float64MultiArray
+import copy
 
 class Tester:
     def __init__(self):
+        self.listener_obj = listener_obj
         self.msg = Twist()
         self.hz = 30.0 # if not set to 100, will not broadcast
         self.rate = rospy.Rate(self.hz)
         self.pub = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
         # rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
-        self.destination = np.array([0,0,0.5])
+        self.waypoints = np.array([0,0,0.5])
         self.olddestination = self.destination
-        self.circle_radius = 0.1
-
-    def callback(self,data):
-        print("callback running, data = ",data.data)
-        # self.destination = self.destination + data.data
-        # if(self.olddestination.all != self.destination.all):
-        #     self.waypointsWithPID(self.circle_radius)
-
-
-    def destination_listener(self):
-        rospy.loginfo("listener running")
-        # rospy.init_node('listener', anonymous=True)
-        rospy.Subscriber("Destination", Float64MultiArray,self.callback)
-        # return 
-        rospy.spin()
     
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
         self.pose1 = self.pose.pose.pose
         return self.pose1
+    
+    def callback(self,data):
+        self.waypoints = data.data + self.waypoints
+
         
     def waypointsWithPID(self, circle_radius):
-        # self.destination_listener()
+        rospy.Subscriber("Destination", Float64MultiArray,self.callback)
+        waypoints = self.waypoints
+        
         # REQUIRED TO OVERCOME INITIAL PUBLISHER BLOCK IMPLEMENTED BY USC
-        waypoints = self.destination
+        # waypoints = self.destination
         self.msg.linear = Vector3(0, 0, 0)
         self.msg.angular = Vector3(0, 0, 0)
         for i in range(100):
@@ -93,6 +86,8 @@ class Tester:
         time_step = (1/self.hz)
 
         while not rospy.is_shutdown():
+            waypoints = self.listener_obj.get_waypoints()
+            print(waypoints)
             # Get current drone pose
             self.pose_before = self.pose_actual
             self.pose_actual = self.getPose('crazyflie4')
@@ -199,13 +194,13 @@ class Tester:
             # (self.z_actual > z_ref) and \
 
             # Waypoint incremeneter, last statement ensures drone will stay at last point
-            if (self.x_actual > (x_ref - circle_radius) and self.x_actual < (x_ref + circle_radius)) and \
-                (self.y_actual > (y_ref - circle_radius) and self.y_actual < (y_ref + circle_radius)) and \
-                (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)):
-                # # counter < no_points - 1: # Hover at last point in waypoints array
-                # counter += 1
-                # print('found next point!!')
-                break
+            # if (self.x_actual > (x_ref - circle_radius) and self.x_actual < (x_ref + circle_radius)) and \
+            #     (self.y_actual > (y_ref - circle_radius) and self.y_actual < (y_ref + circle_radius)) and \
+            #     (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)):
+            #     # # counter < no_points - 1: # Hover at last point in waypoints array
+            #     # counter += 1
+            #     # print('found next point!!')
+            #     break
 
             # if counter == no_points: # Land that bitch
             #     print('elif ran!!!!')
@@ -239,16 +234,30 @@ def bspline_planning(x, y, sn):
 
 
 
+
 if __name__ == "__main__":
     print("running")
-    rospy.init_node('waypoints listener')
+    # listener_obj = listener()
+    # listener_obj.waypoints = np.array([0.0,0.0,0.5])
+    circle_radius = 0.1
+    
+    rospy.init_node('drone1')
     drone1 = Tester()
+    
+    while not rospy.is_shutdown():
+        print("trying listener")
+        drone1.waypointsWithPID(circle_radius)
+        rospy.sleep(0.001)
+
+
+
+
+
     # drone1.waypointsWithPID(drone1.circle_radius)
 
-    try:
-        print("trying listener")
-        drone1.destination_listener()
+    # try:
 
-    except Exception as e:
-        print(e)
-        print('Exception was called!!!')
+
+    # except Exception as e:
+    #     print(e)
+    #     print('Exception was called!!!')
