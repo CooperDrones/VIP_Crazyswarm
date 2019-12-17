@@ -10,6 +10,7 @@ from scipy.spatial.transform import Rotation
 import math
 import scipy.interpolate as si
 import matplotlib.pyplot as plt
+from std_msgs.msg import Float64MultiArray
 
 class Tester:
     def __init__(self):
@@ -17,16 +18,35 @@ class Tester:
         self.hz = 30.0 # if not set to 100, will not broadcast
         self.rate = rospy.Rate(self.hz)
         self.pub = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
-        rospy.wait_for_service('/vicon/grab_vicon_pose')
+        # rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
+        self.destination = np.array([0,0,0.5])
+        self.olddestination = self.destination
+        self.circle_radius = 0.1
+
+    def callback(self,data):
+        print("callback running, data = ",data.data)
+        # self.destination = self.destination + data.data
+        # if(self.olddestination.all != self.destination.all):
+        #     self.waypointsWithPID(self.circle_radius)
+
+
+    def destination_listener(self):
+        rospy.loginfo("listener running")
+        # rospy.init_node('listener', anonymous=True)
+        rospy.Subscriber("Destination", Float64MultiArray,self.callback)
+        # return 
+        rospy.spin()
     
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
         self.pose1 = self.pose.pose.pose
         return self.pose1
         
-    def waypointsWithPID(self, waypoints, circle_radius):
+    def waypointsWithPID(self, circle_radius):
+        # self.destination_listener()
         # REQUIRED TO OVERCOME INITIAL PUBLISHER BLOCK IMPLEMENTED BY USC
+        waypoints = self.destination
         self.msg.linear = Vector3(0, 0, 0)
         self.msg.angular = Vector3(0, 0, 0)
         for i in range(100):
@@ -71,7 +91,6 @@ class Tester:
         yaw_ref = 0
 
         time_step = (1/self.hz)
-        counter = 0
 
         while not rospy.is_shutdown():
             # Get current drone pose
@@ -81,7 +100,7 @@ class Tester:
                 self.pose_actual = self.pose_before
 
             # Set reference reference values
-            x_ref = waypoints[counter, 0]; y_ref = waypoints[counter, 1]; z_ref = waypoints[counter, 2]
+            x_ref = waypoints[0]; y_ref = waypoints[1]; z_ref = waypoints[2]
 
             ### Altitude controller ###
 
@@ -183,15 +202,15 @@ class Tester:
             if (self.x_actual > (x_ref - circle_radius) and self.x_actual < (x_ref + circle_radius)) and \
                 (self.y_actual > (y_ref - circle_radius) and self.y_actual < (y_ref + circle_radius)) and \
                 (self.z_actual > (z_ref - circle_radius) and self.z_actual < (z_ref + circle_radius)):
-                # counter < no_points - 1: # Hover at last point in waypoints array
-                counter += 1
-                print('found next point!!')
-
-            if counter == no_points: # Land that bitch
-                print('elif ran!!!!')
+                # # counter < no_points - 1: # Hover at last point in waypoints array
+                # counter += 1
+                # print('found next point!!')
                 break
+
+            # if counter == no_points: # Land that bitch
+            #     print('elif ran!!!!')
+            #     break
             
-            print('couner is: {}'.format(counter))
             self.pub.publish(self.msg)
             self.rate.sleep()
 
@@ -218,76 +237,18 @@ def bspline_planning(x, y, sn):
 
     return rx, ry
 
+
+
 if __name__ == "__main__":
-    rospy.init_node('test')
+    print("running")
+    rospy.init_node('waypoints listener')
+    drone1 = Tester()
+    # drone1.waypointsWithPID(drone1.circle_radius)
 
     try:
-        drone1 = Tester()
-        # drone2 = Tester()
-
-        # Back and forth
-        # waypoints = np.array([[0, 0, 0.4], 
-        # [2, 0, 0.4], 
-        # [-2, 0, 0.4],
-        # [2, 0, 0.4], 
-        # [-2, 0, 0.4],
-        # [2, 0, 0.4], 
-        # [-2, 0, 0.4]])
-
-        # # Circle
-        # N = 10
-        # x = np.linspace(0.0, 2*np.pi, N)
-        # waypoints = np.zeros((N,3))
-        # for i in range(len(x)):
-        #     waypoints[i, 0] = np.sin(x[i])
-        #     waypoints[i, 1] = np.cos(x[i])
-        #     waypoints[i, 2] = 0.4
-
-        # # room corners
-        # waypoints = np.array([[0, 0, 0.5],
-        # [-2.5, 1.25, 0.5], 
-        # [-2.5, -1, 0.5], 
-        # [2, -1, 0.5],
-        # [2, 1.25, 0.5],
-        
-        # [-2.5, 1.25, 0.5], 
-        # [-2.5, -1, 0.5], 
-        # [2, -1, 0.5],
-        # [2, 1.25, 0.5],
-
-        # [-2.5, 1.25, 0.5], 
-        # [-2.5, -1, 0.5], 
-        # [2, -1, 0.5],
-        # [2, 1.25, 0.5],
-        
-        # [-2.5, 1.25, 0.5], 
-        # [-2.5, -1, 0.5], 
-        # [2, -1, 0.5],
-        # [2, 1.25, 0.5]
-        # ])
-
-        # hover to origin
-        waypoints = np.array([[0, 0, 0.5],
-        [0.0, 0.0, 0.0]])
-
-        # waypoints with bspline
-        # BSN = 2  # B Spline order
-
-        # x = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
-        # y = np.array([-0.5,  1.5, -1.5, 1.5, -0.5])
-        # sn = 100  # sampling number
-
-        # rx, ry = bspline_planning(x, y, sn)
-
-        # waypoints = np.zeros((sn, 3))
-        # for i in range(len(rx)):
-        #     waypoints[i, 0] = rx[i] # x
-        #     waypoints[i, 1] = ry[i] # y
-        #     waypoints[i, 2] = 0.5 # z
-
-        circle_radius = 0.1
-        drone1.waypointsWithPID(waypoints, circle_radius)
-        # drone2.waypointsWithPID(waypoints, circle_radius, 'crazyflie5')
+        print("trying listener")
+        drone1.destination_listener()
 
     except Exception as e:
         print(e)
+        print('Exception was called!!!')
