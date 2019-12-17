@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <!-- <arg name="uri" default="radio://0/80/2M/E7E7E7E704" />
+  <arg name="uri" default="radio://0/80/2M/E7E7E7E704" />
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
@@ -14,11 +14,8 @@
     </node>
   </group>
 
-  <include file="$(find vicon_bridge)/launch/vicon.launch"/> -->
+  <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 
-  <!-- <node name="crazyflie_plot_poses" pkg="crazyflie_demo" type="plot_poses.py" output="screen"> </node> -->
-  <!-- <node name="cmd_vel_publisher" pkg="crazyflie_demo" type="cmd_vel_publisher.py" output="screen"> </node> -->
-  <!-- <node name="crazyflie_step_responses" pkg="crazyflie_demo" type="step_responses.py" output="screen"> </node> -->
   <node name="joystick" pkg="crazyflie_demo" type="joystick.py" output="screen"> </node>
   <node name="test" pkg="crazyflie_demo" type="waypoints.py" output="screen"> </node>
   
