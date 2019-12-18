@@ -15,7 +15,6 @@ import copy
 
 class Tester:
     def __init__(self):
-        self.listener_obj = listener_obj
         self.msg = Twist()
         self.hz = 30.0 # if not set to 100, will not broadcast
         self.rate = rospy.Rate(self.hz)
@@ -23,7 +22,6 @@ class Tester:
         # rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
         self.waypoints = np.array([0,0,0.5])
-        self.olddestination = self.destination
     
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
@@ -82,11 +80,10 @@ class Tester:
         
         # Hold yaw constant throughout
         yaw_ref = 0
-
         time_step = (1/self.hz)
 
         while not rospy.is_shutdown():
-            waypoints = self.listener_obj.get_waypoints()
+            waypoints = self.waypoints
             print(waypoints)
             # Get current drone pose
             self.pose_before = self.pose_actual
@@ -247,11 +244,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
         print("trying listener")
         drone1.waypointsWithPID(circle_radius)
-        rospy.sleep(0.001)
-
-
-
-
+        # rospy.sleep(0.001)
 
     # drone1.waypointsWithPID(drone1.circle_radius)
 
