@@ -1,6 +1,6 @@
 import numpy as np
 
-g = 9.81 # [m/s^2]
+g = 9.80665 # [m/s^2]
 
 # Physical Parameters of the Crazyflie 2.0
 m = 0.35          # Crazyflie 2.0 mass w/ 4 Vicon markers [g]

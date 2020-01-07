@@ -1,7 +1,7 @@
 import numpy as np
 import crazyflie_param as P
 
-class Quadrotor:
+class crazyflie_dynamics:
     def __init__(self):
         # Initial state conditions
         self.state = np.array([
@@ -92,7 +92,7 @@ class Quadrotor:
 
 # Run some tests to see functionality
 if __name__ == "__main__":
-    cf1 = Quadrotor()
+    cf1 = crazyflie_dynamics()
 
     # # Test saturation function with external control commands
     # # roll, pitch, yaw rate, thrust
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     #     print(cf1.state)
 
     # # Test rk4 integrator with symmetric input [RPM]
-    cf2 = Quadrotor()
+    cf2 = crazyflie_dynamics()
     print("RK4\n", cf2.state)
     for _ in range(3):
         cf2.rk4_step(u)
