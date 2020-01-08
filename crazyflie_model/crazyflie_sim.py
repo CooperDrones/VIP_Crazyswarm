@@ -22,6 +22,7 @@ if __name__ = "__main__":
         [10000],
         [10000],
     ])
+    r = 0.5 # [m]
     
     t = P.t_start
     while t < P.t_end:
