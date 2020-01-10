@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
 from crazyflie_dynamics import crazyflie_dynamics
+import crazyflie_param as P
 
 plt.ion()  # enable interactive drawing
 
@@ -94,19 +95,28 @@ if __name__ == "__main__":
     data_plot = data_plotter()
     cf = crazyflie_dynamics()
 
+    # PWM is 0 - 65535
+    # RPM is 4070.3 - 21666.4 Eq. 2.6.1
+    # omega is 426.2 - 2268.9
     u = np.array([
-        [10000],
-        [10000],
-        [10000],
-        [10000],
+        [2000],
+        [2000],
+        [1900],
+        [1900],
     ])
-
     t = 0
     r = 0.5
-    for _ in range(100):
-        t += 1
-        y = cf.update(u)
-        data_plot.update(t, r, cf.state, u[0,0])
+    
+    t = P.t_start
+    while t < P.t_end:
+        # Propagate dynamics at rate Ts
+        t_next_plot = t + P.t_plot
+        while t < t_next_plot:
+            y = cf.update(u)
+            t = t + P.Ts
+        # animation.update(cf.state)
+        data_plot.update(t, r, cf.state, u)
+        plt.pause(0.2)
     
     # Keeps the program from closing until the user presses a button.
     print('Press key to close')
