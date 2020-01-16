@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import sys
+import numpy as np
 
 import crazyflie_param as P
 # from signal_generator import signal_generator
 # from crazyflie_animation import crazyflie_animation
-# from data_plotter import data_plotter
+from data_plotter import data_plotter
 from crazyflie_dynamics import crazyflie_dynamics
 
 # instatiate crazyflie, controller, and reference classes
@@ -15,7 +16,7 @@ cf = crazyflie_dynamics()
 data_plot = data_plotter()
 # animation = crazyflie_animation
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     # PWM is 0 - 65535
     # RPM is 4070.3 - 21666.4 Eq. 2.6.1
     # omega is 426.2 - 2268.9
@@ -42,7 +43,7 @@ if __name__ = "__main__":
             y = cf.update(u)
             t = t + P.Ts
         # animation.update(cf.state)
-        data_plot.update(t, r[2], pendulum.state, u)
+        data_plot.update(t, r[2], cf.state, u)
         plt.pause(0.2)
     
     # Keeps the program from closing until the user presses a button.
