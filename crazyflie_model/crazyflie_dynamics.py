@@ -55,7 +55,7 @@ class crazyflie_dynamics:
     def state_dot(self, state, u):
         # Returns the deivative of the state vector
         # Uses state-space equations provided on pg. 15
-        xdot = self.A @ self.state + self.omega_e * (self.B @ u)
+        xdot = np.matmul(self.A, self.state) + self.omega_e * np.matmul(self.B, u)
         return xdot
     
     def h(self):
