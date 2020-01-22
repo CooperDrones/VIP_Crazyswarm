@@ -32,9 +32,9 @@ class data_plotter:
         # Update the time history of all plot variables
         self.time_history.append(t)
         self.zref_history.append(reference)
-        self.z_history.append(states.item(2))
         self.x_history.append(states.item(0))
         self.y_history.append(states.item(1))
+        self.z_history.append(states.item(2))
 
         # Update the plots with associated handles
         self.handle[0].update(self.time_history, [self.z_history, self.zref_history])

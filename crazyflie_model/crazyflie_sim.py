@@ -20,11 +20,11 @@ if __name__ == "__main__":
     # PWM is 0 - 65535
     # RPM is 4070.3 - 21666.4 Eq. 2.6.1
     # omega is 426.2 - 2268.9
-    u = np.array([
-        [1000],
-        [1000],
-        [1000],
-        [1000],
+    u_pwm = np.array([
+        [15000],
+        [15000],
+        [15000],
+        [15000],
     ])
     # r = 0.5 # zref value [m]
     # Reference is x,y,z global position and cf yaw angle
@@ -39,7 +39,8 @@ if __name__ == "__main__":
     while t < P.t_end:
         t_next_plot = t + P.t_plot # Propagate dynamics at rate Ts
         while t < t_next_plot:
-            # u = ctrl.update(ref_input, cf.state)
+            # u_pwm = ctrl.update(ref_input, cf.state)
+            u = cf.pwm_to_rpm(u_pwm)
             y = cf.update(u)
             t = t + P.Ts
         # animation.update(cf.state)

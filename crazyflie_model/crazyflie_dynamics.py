@@ -5,18 +5,18 @@ class crazyflie_dynamics:
     def __init__(self):
         # Initial state conditions
         self.state = np.array([
-            [P.x0],
-            [P.y0],
-            [P.z0],
-            [P.psi0],
-            [P.theta0],
-            [P.phi0],
-            [P.u0],
-            [P.v0],
-            [P.w0],
-            [P.r0],
-            [P.q0],
-            [P.q0],
+            [P.x0],     # 0
+            [P.y0],     # 1
+            [P.z0],     # 2
+            [P.psi0],   # 3
+            [P.theta0], # 4
+            [P.phi0],   # 5
+            [P.u0],     # 6
+            [P.v0],     # 7
+            [P.w0],     # 8
+            [P.r0],     # 9
+            [P.q0],     # 10
+            [P.p0],     # 11
         ])
         # Time step
         self.Ts = P.Ts
@@ -70,6 +70,13 @@ class crazyflie_dynamics:
             [self.state.item(5)], # pi
         ])
         return y
+    
+    def pwm_to_rpm(self, u_pwm):
+        # Takes PWM signal sent to motors by the controller and converts to propellor RPM
+        u = np.empty_like(u_pwm)
+        for idx in range(u.shape[0]):
+            u[idx] = 0.2685*u_pwm[idx] + 4070.3 # Eq. 2.6.1
+        return u
 
     def euler_step(self, u):
         # Integrate ODE using Euler's method
