@@ -1,16 +1,31 @@
 import matplotlib.pyplot as plt 
 from matplotlib.lines import Line2D
 import numpy as np
-from crazyflie_dynamics import crazyflie_dynamics
+from crazyflie_dynamics import CrazyflieDynamics
 import crazyflie_param as P
 
 plt.ion()  # enable interactive drawing
 
-class data_plotter:
+# self.state = np.array([
+#     [P.x0],     # 0
+#     [P.y0],     # 1
+#     [P.z0],     # 2
+#     [P.psi0],   # 3
+#     [P.theta0], # 4
+#     [P.phi0],   # 5
+#     [P.u0],     # 6
+#     [P.v0],     # 7
+#     [P.w0],     # 8
+#     [P.r0],     # 9
+#     [P.q0],     # 10
+#     [P.p0],     # 11
+# ])
+
+class DataPlotter:
     def __init__(self):
         # Number of subplots
         self.num_rows = 3
-        self.num_cols = 1
+        self.num_cols = 2
 
         # Create figure and axis handles
         self.fig, self.ax = plt.subplots(self.num_rows, self.num_cols, sharex=True)
@@ -22,26 +37,49 @@ class data_plotter:
         self.x_history = [] # position x
         self.y_history = [] # position y
 
+        # TODO: add reference values to plots
+        self.psiref_history = []
+        self.psi_history = []
+        self.thetaref_history = []
+        self.theta_history = []
+        self.phiref_history = []
+        self.phi_history = []
+
         # Create a handle for every subplot
         self.handle = []
-        self.handle.append(my_plot(self.ax[0], ylabel='z(m)', title='CF Data'))
-        self.handle.append(my_plot(self.ax[1], ylabel='x(m)'))
-        self.handle.append(my_plot(self.ax[2], xlabel='t(s)', ylabel='y(m)'))
+        self.handle.append(MyPlot(self.ax[0,0], ylabel='z(m)', title='CF Data'))
+        self.handle.append(MyPlot(self.ax[1,0], ylabel='x(m)'))
+        self.handle.append(MyPlot(self.ax[2,0], xlabel='t(s)', ylabel='y(m)'))
+
+        self.handle.append(MyPlot(self.ax[0,1], ylabel='psi(deg)'))
+        self.handle.append(MyPlot(self.ax[1,1], ylabel='theta(deg)'))
+        self.handle.append(MyPlot(self.ax[2,1], ylabel='phi(deg)'))
 
     def update(self, t, reference, states, ctrl):
         # Update the time history of all plot variables
         self.time_history.append(t)
-        self.zref_history.append(reference)
+        self.zref_history.append(reference.item(2))
         self.x_history.append(states.item(0))
         self.y_history.append(states.item(1))
         self.z_history.append(states.item(2))
+
+        self.psiref_history.append(reference.item(3))
+        self.psi_history.append(states.item(3))
+        self.thetaref_history.append(reference.item(4))
+        self.theta_history.append(states.item(4))
+        self.phiref_history.append(reference.item(5))
+        self.phi_history.append(states.item(5))
 
         # Update the plots with associated handles
         self.handle[0].update(self.time_history, [self.z_history, self.zref_history])
         self.handle[1].update(self.time_history, [self.x_history])
         self.handle[2].update(self.time_history, [self.y_history])
 
-class my_plot:
+        self.handle[3].update(self.time_history, [self.psi_history, self.psiref_history])
+        self.handle[4].update(self.time_history, [self.theta_history, self.thetaref_history])
+        self.handle[5].update(self.time_history, [self.phi_history, self.phiref_history])
+
+class MyPlot:
     def __init__(self, ax, xlabel='', ylabel='', title='', legend=None):
         """
         ax - handle to the axes of the figure
@@ -92,20 +130,27 @@ class my_plot:
 
 # Run some tests
 if __name__ == "__main__":
-    data_plot = data_plotter()
-    cf = crazyflie_dynamics()
+    data_plot = DataPlotter()
+    cf = CrazyflieDynamics()
 
     # PWM is 0 - 65535
     # RPM is 4070.3 - 21666.4 Eq. 2.6.1
     # omega is 426.2 - 2268.9
     u = np.array([
-        [2000],
+        [1900],
         [2000],
         [1900],
-        [1900],
+        [2000],
     ])
     t = 0
-    r = 0.5
+    r = np.array([
+        [0.0], # x
+        [0.0], # y
+        [0.5], # z
+        [0.5], # psi
+        [0.5], # theta 
+        [0.5], # phi
+    ])
     
     t = P.t_start
     while t < P.t_end:

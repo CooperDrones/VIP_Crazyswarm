@@ -34,8 +34,8 @@ Ts = 0.01     # [s]
 t_plot = 0.1  # [s]
 
 # Prop RPM saturation limits
-omega_max = 60000
-input_limits = np.full((4, 1), omega_max)
+rpm_max = 21666.4
+input_limits = np.full((4, 1), rpm_max)
 
 # Outer loop saturation Limits
 phi_max = 30.0       # [rad]
