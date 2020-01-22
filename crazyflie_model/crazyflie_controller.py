@@ -69,33 +69,41 @@ class ControlMixer:
     def __init__(self):
         self.temp = 0.0
 
-    def update(self, omega, del_phi, del_theta, del_psi):
+    def update(self, omega_cap, del_phi, del_theta, del_psi):
         u_pwm = np.array([
-            [omega - del_phi/2 - del_theta/2 - del_psi],
-            [omega + del_phi/2 - del_theta/2 + del_psi],
-            [omega + del_phi/2 + del_theta/2 - del_psi],
-            [omega - del_phi/2 - del_theta/2 + del_psi], 
+            [omega_cap - del_phi/2 - del_theta/2 - del_psi],
+            [omega_cap + del_phi/2 - del_theta/2 + del_psi],
+            [omega_cap + del_phi/2 + del_theta/2 - del_psi],
+            [omega_cap - del_phi/2 - del_theta/2 + del_psi], 
         ])
         return u_pwm
 
 class AltitudeController:
     def __init__(self, kp=11000, ki=3500, kd=9000):
-        self.omega_e = 44705 # Eq. 3.1.8
+        self.omega_e = 44705 # Feedforward from Eq. 3.1.8
         self.kp = kp
         self.ki = ki
         self.e_hist = 0.0
         self.kd = kd
         self.e_prev = 0.0
 
-        self.t = P.Ts
+        self.t_ob = P.t_ob
 
     def update(self, z_c, z):
         e = z_c - z
         self.e_hist += e # historical error
-        e_der = (e - self.e_prev) / self.t # dirty derivative error
+        e_der = (e - self.e_prev) / self.t_ob # dirty derivative error
         self.e_prev = e
-        del_cap_omega = self.omega_e + (self.kp * e) + (self.ki * self.e_hist) + (self.kd * e_der)
-        return del_cap_omega
+        del_omega_cap = self.omega_e + (self.kp * e) + (self.ki * self.e_hist) + (self.kd * e_der)
+        del_omega_cap = self.saturate(del_omega_cap)
+        return del_omega_cap
+    
+    def saturate(self, del_omega_cap):
+        if del_omega_cap > 15000:
+            del_omega_cap = 15000
+        elif del_omega_cap < -20000:
+            del_omega_cap = -20000
+        return del_omega_cap
 
 if __name__ == "__main__":
     cf = CrazyflieDynamics()
@@ -118,7 +126,7 @@ if __name__ == "__main__":
     r = np.array([
         [0.0], # x
         [0.0], # y
-        [0.5], # z
+        [1.0], # z
         [0.0], # psi
         [0.0], # theta 
         [0.0], # phi
@@ -129,21 +137,36 @@ if __name__ == "__main__":
 
     t = P.t_start
 
-    for _ in range(100):
-        t = t + P.Ts
-
-        u_ob[3,0]                   = altitiude_ctrl.update(r.item(2), cf.state.item(2))
-        print(u_ob)
+    # for _ in range(100):
+    while t < P.t_end: # plotter can run slowly
+        t_next_plot = t + P.t_plot
         
-        p_c, q_c                    = attitude_ctrl.update(phi_c, theta_c, cf.state)
-        del_phi, del_theta, del_psi = rate_ctrl.update(p_c, q_c, r_c, cf.state)
-        u_pwm                       = ctrl_mixer.update(u_ob.item(3), del_phi, del_theta, del_psi)
+        while t < t_next_plot: # offboard controller is slowest at 100 hz
+            t_next_ob = t + P.t_ob
+            u_ob[3,0] = altitiude_ctrl.update(r.item(2), cf.state.item(2))
+            # print("thrust value", u_ob.item(3))
+            # print("z error ", altitiude_ctrl.e_hist)
 
-        u = cf.pwm_to_rpm(u_pwm)
-        y = cf.update(u)
+            while t < t_next_ob: # attitude controller is intermediate at 250 hz
+                t_next_attitude = t + P.t_att
+                p_c, q_c = attitude_ctrl.update(phi_c, theta_c, cf.state)
+                # print("p_c and q_c ", p_c, q_c) # these are 0 for now with now x/y ref or noise
+
+                while t < t_next_attitude: # rate controller is fastest at 500 hz
+                    del_phi, del_theta, del_psi = rate_ctrl.update(p_c, q_c, r_c, cf.state)
+                    # print("del_phi, del_theta, del_psi", del_phi, del_theta, del_psi) # these are 0 without x/y command or noise
+
+                    u_pwm = ctrl_mixer.update(u_ob.item(3), del_phi, del_theta, del_psi) # output is PWM signal
+                    u = cf.pwm_to_rpm(u_pwm) # output is converted to rpm through Eq. 2.6.1
+                    y = cf.update(u) # rpm is used in cf state update equations
+                    t = t + P.t_rate
+
+            print("thrust:, \n", u_ob.item(3))
+            print("u_pwm: \n", u_pwm)
+            print("u: \n", u)
 
         plot.update(t, r, cf.state, u)
-        plt.pause(0.01)
+        plt.pause(0.2)
     
     print('Press key to close')
     plt.waitforbuttonpress()
