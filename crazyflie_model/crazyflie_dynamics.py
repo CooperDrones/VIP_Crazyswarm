@@ -1,7 +1,7 @@
 import numpy as np
 import crazyflie_param as P
 
-class crazyflie_dynamics:
+class CrazyflieDynamics:
     def __init__(self):
         # Initial state conditions
         self.state = np.array([
@@ -55,6 +55,7 @@ class crazyflie_dynamics:
     def state_dot(self, state, u):
         # Returns the deivative of the state vector
         # Uses state-space equations provided on pg. 15
+        # xdot = np.matmul(self.A, self.state) + np.matmul(self.B, u)
         xdot = np.matmul(self.A, self.state) + self.omega_e * np.matmul(self.B, u)
         return xdot
     
@@ -75,7 +76,7 @@ class crazyflie_dynamics:
         # Takes PWM signal sent to motors by the controller and converts to propellor RPM
         u = np.empty_like(u_pwm)
         for idx in range(u.shape[0]):
-            u[idx] = 0.2685*u_pwm[idx] + 4070.3 # Eq. 2.6.1
+            u[idx] = 0.2685 * u_pwm[idx] + 4070.3 # Eq. 2.6.1
         return u
 
     def euler_step(self, u):
@@ -99,22 +100,11 @@ class crazyflie_dynamics:
 
 # Run some tests to see functionality
 if __name__ == "__main__":
-    cf1 = crazyflie_dynamics()
-
-    # # Test saturation function with external control commands
-    # # roll, pitch, yaw rate, thrust
-    # olu = np.array([
-    #     [40.0],
-    #     [-50.0],
-    #     [500.0],
-    #     [70000.0],
-    # ])
-    # olu = cf1.saturate(olu, cf1.input_limits)
-    # print(olu)
+    cf1 = CrazyflieDynamics()
 
     # Symmetric input
     u = np.array([
-        [10000],
+        [25000],
         [10000],
         [10000],
         [10000],
@@ -127,12 +117,14 @@ if __name__ == "__main__":
     #     print(cf1.state)
 
     # # Test rk4 integrator with symmetric input [RPM]
-    cf2 = crazyflie_dynamics()
-    print("RK4\n", cf2.state)
-    for _ in range(3):
-        cf2.rk4_step(u)
-        print(cf2.state)
-
+    # cf2 = CrazyflieDynamics()
+    # print("RK4\n", cf2.state)
     # for _ in range(3):
-    #     y = cf1.update(u)
-    #     print(y)
+    #     cf2.rk4_step(u)
+    #     print(cf2.state)
+
+    # Test saturate
+    for _ in range(3):
+        print(u)
+        y = cf1.update(u)
+        print(u)
