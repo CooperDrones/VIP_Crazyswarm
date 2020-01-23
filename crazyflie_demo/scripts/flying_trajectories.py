@@ -12,6 +12,8 @@ import scipy.interpolate as si
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
 
+g = 9.81 # [m/s^2]
+
 class Tester:
     def __init__(self):
         self.msg = Twist()
@@ -139,7 +141,7 @@ class Tester:
                 (y > (yr - goal_r) and y < (yr + goal_r)) and \
                 (z > (zr - goal_r - offset) and z < (zr + goal_r + offset)):
                 print('Found the hover setpoint!')
-                break
+                # break
 
             # Add to plotter
             to_plot_add = np.array([x, y, z])
@@ -148,6 +150,13 @@ class Tester:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
+    def normalize(self, a):
+        b = np.empty_like(a)
+        b[0] = -a[1]
+        b[1] = a[0]
+        b = b / np.linalg.norm(b)
+        return b
+
     def followTraj(self, traj):
         origin = self.getPose('crazyflie4')
         pose = origin
@@ -155,10 +164,9 @@ class Tester:
         ze_prev = 0.
         x_b_prev = 0.
         y_b_prev = 0.
-
+        r_hist = 0.
+        idx_now = 0
         while not rospy.is_shutdown():
-            idx_now = 0
-
             # Get current drone pose
             pose_prev = pose
             pose = self.getPose('crazyflie4')
@@ -199,42 +207,56 @@ class Tester:
             v = (y_b - y_b_prev) / self.time_step # v is y-vel in body frame
             y_b_prev = y_b # Reset previous val
 
-
-
             ### Traj following ###
             r = np.array([x, y]) # current position vector
             rdot = np.array([u, v]) # current velocity vector
 
-            # TODO find closest point in trajectory
             idx_next = idx_now + 1
             r_T = np.array([traj[idx_now, 0], traj[idx_now, 1]]) # desired position vector
             rdot_T = np.array([traj[idx_now, 3], traj[idx_now, 4]])
 
             tang_vect = np.array([traj[idx_next, 0] - traj[idx_now, 0], traj[idx_next, 1] - traj[idx_now, 1]])
-            tangent = tang_vect / np.linalg.norm(tang_vect)
-            
-            normal = np.empty_like(tang_vect)
-            normal[0] = -tangent[1]
-            normal[1] = tangent[0]
-            normal = normal / np.linalg.norm(normal)
+            t_hat = tang_vect / np.linalg.norm(tang_vect)
+            n_hat = self.normalize(t_hat)
 
             # TODO check that errors are correct 
             # Eq. 9 in the following paper:
             # http://ai.stanford.edu/~gabeh/papers/GNC08_QuadTraj.pdf
-            e_ct = np.matmul((r_T - r), normal) # cross-track position error
-            edot_ct = np.matmul(-rdot, normal) # cross-track velocity error
-            edot_at = np.matmul((rdot_T - rdot), tangent) # along-track velocity error
+            e_ct = np.dot((r_T - r), n_hat) # cross-track position error
+            edot_ct = np.dot(-rdot, n_hat) # cross-track velocity error
+            edot_at = np.dot((rdot_T - rdot), t_hat) # along-track velocity error
 
             print('e_ct: {}, edot_ct: {}, edot_at: {}'.format(e_ct, edot_ct, edot_at))
 
-            # TODO 
+            kp = 1; kd = 1
+            rdotdot_des = kp*e_ct + kd*edot_at
+
+            print('rdotdot_des = {}'.format(rdotdot_des))
+
+            # Implement controller from the following paper, but in 2D
+            # https://sci-hub.tw/https://journals.sagepub.com/doi/abs/10.1177/0278364911434236
+
+            # # 8a for roll angle, phi, which correlates to y
+            # msg.linear.x = (1/g) * ((rdotdot_des[0] * sin(traj[idx, 6])) - (rdotdot_des[1] * cos(traj[idx_now, 6])))
+            
+            # # 8b for pitch angle, theta, which correlates to x
+            # msg.linear.y = (1/g) * ((rdotdot_des[0] * cos(traj[idx, 6])) + (rdotdot_des[1] * sin(traj[idx_now, 6])))
+
+            b = np.array([x - traj[idx_next, 0], y - traj[idx_next, 1]]) # vector from next index point to current robot state
+            # print('The next index to state vector is: {}'.format(b))
+
+            angle = np.arccos(np.dot(t_hat, b) / (np.linalg.norm(t_hat) * np.linalg.norm(b)))
 
             # TODO find closest point in trajectory and increment index
+            # Try projecting normal unit vector to idx_next and checking that
+            # drone is on other side
+            if angle < (np.pi/2):
+                print("incremented the counter")
+                idx_now += 1
 
-
-            # # Add to plotter
-            # to_plot_add = np.array([x, y, z])
-            # self.to_plot = np.vstack((self.to_plot, to_plot_add))
+            # Add to plotter
+            to_plot_add = np.array([x, y, z])
+            self.to_plot = np.vstack((self.to_plot, to_plot_add))
 
             # self.pub.publish(self.msg)
             self.rate.sleep()
@@ -257,7 +279,7 @@ def genConstVelTraj(vel):
     """
     t = 1./30.
     N = 10
-    x = np.linspace(-0.5, 0.5, N)
+    x = np.linspace(0, 0.5, N)
     y = 0.5 * x
     
     # Count distance of all linearized segments
@@ -286,6 +308,7 @@ def genConstVelTraj(vel):
     yaw = np.zeros((N, 1))
     t = np.full((N, 1), t)
 
+    #                 0  1  2  3  4  5  6    7
     traj = np.hstack((x, y, z, u, v, w, yaw, t))
     return traj
 
@@ -306,7 +329,7 @@ def main():
     try:
         vel = 1.5 # [m/s]
         traj = genConstVelTraj(vel)
-        # plotTrajTheo(traj)
+        plotTrajTheo(traj)
 
         N = traj.shape[0]
         # print(traj[0,:])
@@ -316,6 +339,8 @@ def main():
         drone1.dummyForLoop()
 
         # goal_r = 0.01
+        # drone1.hover(0.0, 0.0, 0.5, goal_r)
+
         # drone1.hover(traj[0, 0], traj[0, 1], traj[0, 2], goal_r)
 
         # Fly a trajectory
@@ -328,10 +353,10 @@ def main():
         # zr = 0.15 # [m]
         # drone1.hover(traj[N-1, 0], traj[N-1, 1], zr, goal_r)
 
-        drone1.plotTraj(traj)
+        # drone1.plotTraj(traj)
 
-        plt.legend(loc='best')
-        plt.show()
+        # plt.legend(loc='best')
+        # plt.show()
 
     except Exception as e:
         print(e)
