@@ -32,3 +32,6 @@ class AltitudeControllerPhys:
         del_omega_cap = self.ff + (self.kp * e) + (self.ki * self.e_hist) + (self.kd * e_der)
         print("del_omega_cap", del_omega_cap)
         return del_omega_cap
+
+# class XYControllerPhys:
+#     def __init__(self, )
