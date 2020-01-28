@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 import rospy
 from geometry_msgs.msg import Twist,Vector3,TransformStamped # twist used in cmd_vel
-from crazyflie_driver.msg import Hover # used in cmd_hover commands vel, yaw rate, and hover height
-from crazyflie_driver.srv import Takeoff
-from std_msgs.msg import Duration
+from crazyflie_driver.msg import Hover
+from std_msgs.msg import Empty
 from vicon_bridge.srv import viconGrabPose
 import numpy as np
 from scipy.spatial.transform import Rotation
 import math
 import scipy.interpolate as si
 import matplotlib.pyplot as plt
+from threading import Thread
+import time
 
 class Tester:
-    def __init__(self):
+    def __init__(self, cf_name):
+        self.cf_name = cf_name
         self.msg = Twist()
         self.hz = 30.0
         self.rate = rospy.Rate(self.hz)
@@ -57,14 +59,14 @@ class Tester:
         self.y_error_historical = 0.
         self.x_before = 0.
         self.y_before = 0.
-        self.x_cap = 25.
-        self.y_cap = 25.
+        self.x_cap = 15.
+        self.y_cap = 15.
 
         # Yaw rate controller gains
         self.yaw_kp = -4. # Table 3.1.3
 
         # Set initial reference values
-        origin = self.getPose('crazyflie4')
+        origin = self.getPose(self.cf_name)
         self.pose_actual = origin
         
         # Hold yaw constant throughout
@@ -74,7 +76,7 @@ class Tester:
         while not rospy.is_shutdown():
             # Get current drone pose
             self.pose_before = self.pose_actual
-            self.pose_actual = self.getPose('crazyflie4')
+            self.pose_actual = self.getPose(self.cf_name)
             if math.isnan(self.pose_actual.orientation.x): # If nan is thrown, set to last known position
                 self.pose_actual = self.pose_before
 
@@ -144,9 +146,12 @@ class Tester:
                 + (self.y_error_historical * self.y_ki)
 
             # Cap errors to prevent unstable maneuvers
-            if self.y_error_scaled >= self.y_cap:
+            if self.x_error_scaled >= self.x_cap:
+                self.x_error_scaled = self.x_cap
+            elif self.x_error_scaled <= -self.x_cap:
+                self.x_error_scaled = -self.x_cap
+            elif self.y_error_scaled >= self.y_cap:
                 self.y_error_scaled = self.y_cap
-            
             elif self.y_error_scaled <= -self.y_cap:
                 self.y_error_scaled = -self.y_cap
 
@@ -173,7 +178,7 @@ class Tester:
         print('Started u controller!')
         
         # Set initial reference values
-        origin = self.getPose('crazyflie4')
+        origin = self.getPose(self.cf_name)
         self.pose_actual = origin
         
         # Hold yaw constant throughout
@@ -186,7 +191,7 @@ class Tester:
         while not rospy.is_shutdown():
             # Get current drone pose
             self.pose_before = self.pose_actual
-            self.pose_actual = self.getPose('crazyflie4')
+            self.pose_actual = self.getPose(self.cf_name)
             if math.isnan(self.pose_actual.orientation.x): # If nan is thrown, set to last known position
                 self.pose_actual = self.pose_before
 
@@ -249,9 +254,12 @@ class Tester:
                 + (self.y_error_historical * self.y_ki)
 
             # Cap errors to prevent unstable maneuvers
-            if self.y_error_scaled >= self.y_cap:
+            if self.x_error_scaled >= self.x_cap:
+                self.x_error_scaled = self.x_cap
+            elif self.x_error_scaled <= -self.x_cap:
+                self.x_error_scaled = -self.x_cap
+            elif self.y_error_scaled >= self.y_cap:
                 self.y_error_scaled = self.y_cap
-            
             elif self.y_error_scaled <= -self.y_cap:
                 self.y_error_scaled = -self.y_cap
 
@@ -278,7 +286,7 @@ class Tester:
         print('Started v controller!')
         
         # Set initial reference values
-        origin = self.getPose('crazyflie4')
+        origin = self.getPose(self.cf_name)
         self.pose_actual = origin
         
         # Hold yaw constant throughout
@@ -291,7 +299,7 @@ class Tester:
         while not rospy.is_shutdown():
             # Get current drone pose
             self.pose_before = self.pose_actual
-            self.pose_actual = self.getPose('crazyflie4')
+            self.pose_actual = self.getPose(self.cf_name)
             if math.isnan(self.pose_actual.orientation.x): # If nan is thrown, set to last known position
                 self.pose_actual = self.pose_before
 
@@ -354,9 +362,12 @@ class Tester:
                 + (self.y_error_historical * self.y_ki)
 
             # Cap errors to prevent unstable maneuvers
-            if self.y_error_scaled >= self.y_cap:
+            if self.x_error_scaled >= self.x_cap:
+                self.x_error_scaled = self.x_cap
+            elif self.x_error_scaled <= -self.x_cap:
+                self.x_error_scaled = -self.x_cap
+            elif self.y_error_scaled >= self.y_cap:
                 self.y_error_scaled = self.y_cap
-            
             elif self.y_error_scaled <= -self.y_cap:
                 self.y_error_scaled = -self.y_cap
 
@@ -379,31 +390,115 @@ class Tester:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
+### Attempt to make threading work to fly multiple drones
+# def handler(cf, cf_name):
+#     try:
+#         drone1 = Tester(cf_name)
+#         drone1.dummyForLoop()
+
+#         x_ref = 0.0 # m
+#         y_ref = 0.0 # m
+#         z_ref = 0.4 # m
+#         circle_radius = 0.1 # m
+
+#         drone1.hover(x_ref, y_ref, z_ref, circle_radius)
+
+#         x_ref = -1.0
+#         y_ref = -0.5
+#         drone1.hover(x_ref, y_ref, z_ref, circle_radius)
+
+#         u_ref = 1.5 # m/s
+#         x_ref = 1.0
+#         drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+#         # u_ref = -2.0 # m/s
+#         # x_ref = -1.0 # m
+#         # drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+#         v_ref = 1.5 # m/s
+#         y_ref = 0.5 # m
+#         drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+#         u_ref = -u_ref # m/s
+#         x_ref = -x_ref # m
+#         drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+#         v_ref = -v_ref # m/s
+#         y_ref = -y_ref # m/s
+#         drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+#         u_ref = -u_ref # m/s
+#         x_ref = -x_ref # m
+#         drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+#         v_ref = -v_ref # m/s
+#         y_ref = -y_ref # m/s
+#         drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+#         u_ref = -u_ref # m/s
+#         x_ref = -x_ref # m
+#         drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
+
+#         v_ref = -v_ref # m/s
+#         y_ref = -y_ref # m/s
+#         drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
+
+#         # land the drone
+#         z_ref = 0.15
+#         drone1.hover(x_ref, y_ref, z_ref, circle_radius)
+
+#     except Exception as e:
+#         print(e)
+
+
+# if __name__ == '__main__':
+#     rospy.init_node('test')
+
+#     cf3 = Tester("crazyflie3")
+#     cf4 = Tester("crazyflie4")
+#     # cf3 = Tester("crazyflie5")
+
+#     t3 = Thread(target=handler, args=(cf3, "crazyflie3",))
+#     t4 = Thread(target=handler, args=(cf4, 'crazyflie4',))
+#     # t3 = Thread(target=handler, args=(cf3,))
+
+#     t3.start()
+#     # time.sleep(20.0)
+#     t4.start()
+#     # time.sleep(0.5)
+#     # t3.start()
+
 if __name__ == "__main__":
     rospy.init_node('test')
 
+    # Works with drone 4 as of 01/28/2020
+    # Please do not change script directly!!!
+    # Copy all into new file if you would like to edit
     try:
-        drone1 = Tester()
-
+        drone1 = Tester('crazyflie4')
         drone1.dummyForLoop()
 
-        x_ref = -0.75 # m
-        y_ref = -0.75 # m
+        x_ref = 0.0 # m
+        y_ref = 0.0 # m
         z_ref = 0.4 # m
-        circle_radius = 0.05 # m
+        circle_radius = 0.1 # m
 
         drone1.hover(x_ref, y_ref, z_ref, circle_radius)
 
+        x_ref = -1.0
+        y_ref = -0.5
+        drone1.hover(x_ref, y_ref, z_ref, circle_radius)
+
         u_ref = 1.5 # m/s
-        x_ref = 0.75
+        x_ref = 1.0
         drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
 
-        # u_ref = -2 # m/s
+        # u_ref = -2.0 # m/s
         # x_ref = -1.0 # m
         # drone1.uPathTracker(x_ref, y_ref, z_ref, u_ref)
 
         v_ref = 1.5 # m/s
-        y_ref = 0.75 # m/s
+        y_ref = 0.5 # m
         drone1.vPathTracker(x_ref, y_ref, z_ref, v_ref)
 
         u_ref = -u_ref # m/s
