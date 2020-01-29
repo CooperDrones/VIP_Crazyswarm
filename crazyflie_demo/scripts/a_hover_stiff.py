@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation
 from mpl_toolkits import mplot3d
 
 # Import crazyflie model modules
-from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys
+from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys, YawControllerPhys
 import sys
 sys.path.append("../model/")
 from data_plotter import DataPlotter
@@ -25,7 +25,7 @@ class CooperativeQuad:
         self.cf_name = cf_name
         self.msg = Twist()
         self.hz = 30.0
-        self.t_phys = 1/self.hz
+        self.t_phys = 1/self.hz # TODO make P.t_phys import
         self.rate = rospy.Rate(self.hz)
 
         self.pub = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
@@ -34,29 +34,6 @@ class CooperativeQuad:
 
         # # Followed this paper, section 3.1, for PID controller
         # # https://arxiv.org/pdf/1608.05786.pdf
-        # # Altitude (z) controller gains and initialization
-        # self.z_feed_forward = 41000. # Eq. 3.1.8 - a bit less since we do not use UWB module
-        # self.z_kp = 11000. # Table 3.1.3
-        # self.z_ki = 3500.
-        # self.z_kd = 9000.
-        # self.thrust_cap_high = 15000. # TODO add caps for all commands
-        # self.thrust_cap_low = -20000.
-        # self.ze_cap = 1.5
-
-        # xy controller gains and initialization
-        self.x_kp = 10.0 # Table 3.1.3
-        self.x_ki = 2.0
-        self.y_kp = -10.0
-        self.y_ki = -2.0
-        self.x_cap = 15.0
-        self.y_cap = 15.0
-
-        # Yaw rate controller gains
-        self.yaw_kp = -20. # Table 3.1.3
-
-        # Plotter initialization
-        start = self.getPose(self.cf_name)
-        self.to_plot = np.array([start.position.x, start.position.y, start.position.z])
 
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
@@ -71,22 +48,26 @@ class CooperativeQuad:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
-    def hover(self, xr, yr, zr, goal_r):
-        print('Start hover controller')
-        # Initialize function specfic values
-        # x_b_prev = 0.0
-        # xe_b_hist = 0.0
-        # y_b_prev = 0.0
-        # ye_b_hist = 0.0
-        pose = self.getPose('crazyflie4')
-        yawr = 0.0
-        # t = 0.0
+    def hoverStiff(self, x_c, y_c, z_c, yaw_c, goal_r):
+        """
+        Hovers the drone to an accurate global setpoint
+        Drone will stay at setpoint until other function is called
+        Stiff refers to optimization for global positional accuracy
 
-        # Initialize classes
+        Parameters
+        ----------
+        x_c, y_c, z_c, yaw_c = reference setpoints
+        goal_r = bounding radius for when drone is "close enough" to commanded setpoint
+        """
+        
+        print('Start hover controller')
+        pose = self.getPose('crazyflie4') # For vicon nan handler
         plot = DataPlotter()
+
+        # Initialize required hover controllers
         altitude_ctrl_phys = AltitudeControllerPhys()
         xy_ctrl_phys = XYControllerPhys()
-        print("after class declarations")
+        yaw_ctrl_phys = YawControllerPhys()
 
         state = np.array([
             [P.x0],     # 0
@@ -103,13 +84,12 @@ class CooperativeQuad:
             [P.p0],     # 11
         ])
 
+        # for plotter
         r = np.array([
-            [0.0], # x
-            [0.0], # y
-            [zr], # z
-            [0.0], # psi
-            [0.0], # theta
-            [0.0], # phi
+            [x_c], # x
+            [y_c], # y
+            [z_c], # z
+            [yaw_c], # psi (yaw)
         ])
         
         # t = P.t_start
@@ -120,77 +100,31 @@ class CooperativeQuad:
         # while t < t_next_plot:
         # for _ in range(100):
         while not rospy.is_shutdown():
-            # Get current drone pose
             pose_prev = pose
-            pose = self.getPose(self.cf_name)
-            if math.isnan(pose.orientation.x): # If nan is thrown, set to last known position
+            pose = self.getPose(self.cf_name) # get current pose
+            if math.isnan(pose.orientation.x): # handle nans by setting to last known position
                 pose = pose_prev
-
-            ### Altitude controller ###
-            z = pose.position.z # Get true z value
-            self.msg.linear.z = altitude_ctrl_phys.update(r[2,0], z, self.t_phys)
-
-            ### xy position controller ###
-            x = pose.position.x; y = pose.position.y # Get true x and y values
-            state[0,0] = x; state[1,0] = y; state[2,0] = z # for plotter
-
+            x = pose.position.x; y = pose.position.y; z = pose.position.z
+            
+            # Obtain yaw angle from quaternion
             quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
             R = Rotation.from_quat(quat)
             x_global = R.apply([1, 0, 0]) # project to world x-axis
             yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
 
-            self.msg.linear.x, self.msg.linear.y = xy_ctrl_phys.update(r[0,0], x, r[1,0], y, yaw, self.t_phys)
-
-            # xe = xr - x; ye = yr - y # Get position error
-
-            # # Obtain yaw angle from quaternion
-            # quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
-            # R = Rotation.from_quat(quat)
-            # x_global = R.apply([1, 0, 0]) # project to world x-axis
-            # yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
-
-            # x_b = x * np.cos(yaw) + y * np.sin(yaw) # Get x in body frame
-            # u = (x_b - x_b_prev) / self.t_phys # u is x-vel in body frame
-            # x_b_prev = x_b # Reset previous val
-            # y_b = -(x * np.sin(yaw)) + y * np.cos(yaw) # Get y in body frame
-            # v = (y_b - y_b_prev) / self.t_phys # v is y-vel in body frame
-            # y_b_prev = y_b # Reset previous val
-            # xe_b = xe * np.cos(yaw) + ye * np.sin(yaw) # Get errors in body frame
-            # ye_b = -(xe * np.sin(yaw)) + ye * np.cos(yaw)
-            # xe_b_hist += ((xe_b - u) * self.t_phys) # Accumulate and store histroical error
-            # ye_b_hist += ((ye_b - v) * self.t_phys)
-            # xe_b_tot = ((xe_b - u) * self.x_kp) + (xe_b_hist * self.x_ki) # Eq. 3.1.11 and Eq. 3.1.12
-            # ye_b_tot = ((ye_b - v) * self.y_kp) + (ye_b_hist * self.y_ki)
-
-            # # Cap roll (y) and pitch (x) to prevent unstable maneuvers
-            # if xe_b_tot >= self.x_cap:
-            #     xe_b_tot = self.x_cap
-            # elif xe_b_tot <= -self.x_cap:
-            #     xe_b_tot = -self.x_cap
-            # elif ye_b_tot >= self.y_cap:
-            #     ye_b_tot = self.y_cap            
-            # elif ye_b_tot <= -self.y_cap:
-            #     ye_b_tot = -self.y_cap
-
-            # self.msg.linear.x = xe_b_tot
-            # self.msg.linear.y = ye_b_tot
-
-            ### yaw-rate controller Eq. 3.1.13 ###
-            yawe = yawr - yaw
-            yawe_tot = self.yaw_kp * yawe
-            self.msg.angular.z = yawe_tot
+            self.msg.linear.z = altitude_ctrl_phys.update(z_c, z)
+            self.msg.linear.x, self.msg.linear.y = xy_ctrl_phys.update(x_c, x, y_c, y, yaw)
+            self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
             ### Goal behavior ###
             offset = 0.05 # additional z boundary to speed tests
-            if (x > (xr - goal_r) and x < (xr + goal_r)) and \
-                (y > (yr - goal_r) and y < (yr + goal_r)) and \
-                (z > (zr - goal_r - offset) and z < (zr + goal_r + offset)):
+            if (x > (x_c - goal_r) and x < (x_c + goal_r)) and \
+                (y > (y_c - goal_r) and y < (y_c + goal_r)) and \
+                (z > (z_c - goal_r - offset) and z < (z_c + goal_r + offset)):
                 print('Found the hover setpoint!')
-                # break
+                break
 
-            # # Add to plotter
-            # to_plot_add = np.array([x, y, z])
-            # self.to_plot = np.vstack((self.to_plot, to_plot_add))
+            state[0,0] = x; state[1,0] = y; state[2,0] = z # for plotter
 
             # t += self.t_phys
             self.pub.publish(self.msg)
@@ -205,17 +139,23 @@ class CooperativeQuad:
         # plt.waitforbuttonpress()
         # plt.close()
 
+    def land(self):
+        print("Land function called")
+        self.hoverStiff(0.0, 0.0, 0.2, 0.0, 0.075)
+
+
 def main():
     rospy.init_node('test')
 
     try:
-        # Initialize drone tester class with dummy loop
+        # Initialize drone control class with arg matching vicon object name
         cf1 = CooperativeQuad('crazyflie4')
         cf1.dummyForLoop()
 
         # Hover at z=0.5, works tested 1/27/2020
-        goal_r = 0.01
-        cf1.hover(0.0, 0.0, 0.5, goal_r)
+        goal_r = 0.1
+        cf1.hoverStiff(0.0, 0.0, 0.5, 0.0, goal_r)
+        cf1.land()
 
     except Exception as e:
         print(e)
