@@ -35,10 +35,6 @@ class CooperativeQuad:
         # # Followed this paper, section 3.1, for PID controller
         # # https://arxiv.org/pdf/1608.05786.pdf
 
-        # # Plotter initialization
-        # start = self.getPose(self.cf_name)
-        # self.to_plot = np.array([start.position.x, start.position.y, start.position.z])
-
     def getPose(self, vicon_object):
         self.pose = self.pose_getter(vicon_object, vicon_object, 1)
         self.pose1 = self.pose.pose.pose
@@ -52,18 +48,26 @@ class CooperativeQuad:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
-    def hover(self, x_c, y_c, z_c, yaw_c, goal_r):
+    def hoverStiff(self, x_c, y_c, z_c, yaw_c, goal_r):
+        """
+        Hovers the drone to an accurate global setpoint
+        Drone will stay at setpoint until other function is called
+        Stiff refers to optimization for global positional accuracy
+
+        Parameters
+        ----------
+        x_c, y_c, z_c, yaw_c = reference setpoints
+        goal_r = bounding radius for when drone is "close enough" to commanded setpoint
+        """
+        
         print('Start hover controller')
         pose = self.getPose('crazyflie4') # For vicon nan handler
-        yawr = 0.0
-        # t = 0.0
-
-        # Initialize classes
         plot = DataPlotter()
+
+        # Initialize required hover controllers
         altitude_ctrl_phys = AltitudeControllerPhys()
         xy_ctrl_phys = XYControllerPhys()
         yaw_ctrl_phys = YawControllerPhys()
-        print("after class declarations")
 
         state = np.array([
             [P.x0],     # 0
@@ -117,7 +121,7 @@ class CooperativeQuad:
                 (y > (y_c - goal_r) and y < (y_c + goal_r)) and \
                 (z > (z_c - goal_r - offset) and z < (z_c + goal_r + offset)):
                 print('Found the hover setpoint!')
-                # break
+                break
 
             state[0,0] = x; state[1,0] = y; state[2,0] = z # for plotter
 
@@ -134,17 +138,23 @@ class CooperativeQuad:
         # plt.waitforbuttonpress()
         # plt.close()
 
+    def land(self):
+        print("Land function called")
+        self.hoverStiff(0.0, 0.0, 0.2, 0.0, 0.075)
+
+
 def main():
     rospy.init_node('test')
 
     try:
-        # Initialize drone tester class with dummy loop
+        # Initialize drone control class with arg matching vicon object name
         cf1 = CooperativeQuad('crazyflie4')
         cf1.dummyForLoop()
 
         # Hover at z=0.5, works tested 1/27/2020
-        goal_r = 0.01
-        cf1.hover(0.0, 0.0, 0.5, 0.0, goal_r)
+        goal_r = 0.1
+        cf1.hoverStiff(0.0, 0.0, 0.5, 0.0, goal_r)
+        cf1.land()
 
     except Exception as e:
         print(e)
