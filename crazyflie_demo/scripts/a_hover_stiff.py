@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation
 from mpl_toolkits import mplot3d
 
 # Import crazyflie model modules
-from a_cf_controller_phys import AltitudeControllerPhys
+from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys
 import sys
 sys.path.append("../model/")
 from data_plotter import DataPlotter
@@ -18,7 +18,7 @@ import rospy
 from geometry_msgs.msg import Twist, Vector3 # twist used in cmd_vel
 from vicon_bridge.srv import viconGrabPose
 
-# plt.ion() # enable interactive plotting
+plt.ion() # enable interactive plotting
 
 class CooperativeQuad:
     def __init__(self, cf_name):
@@ -74,19 +74,18 @@ class CooperativeQuad:
     def hover(self, xr, yr, zr, goal_r):
         print('Start hover controller')
         # Initialize function specfic values
-        # ze_hist = 0.0
-        # ze_prev = 0.0
-        x_b_prev = 0.0
-        xe_b_hist = 0.0
-        y_b_prev = 0.0
-        ye_b_hist = 0.0
+        # x_b_prev = 0.0
+        # xe_b_hist = 0.0
+        # y_b_prev = 0.0
+        # ye_b_hist = 0.0
         pose = self.getPose('crazyflie4')
         yawr = 0.0
-        t = 0.0
+        # t = 0.0
 
         # Initialize classes
         plot = DataPlotter()
         altitude_ctrl_phys = AltitudeControllerPhys()
+        xy_ctrl_phys = XYControllerPhys()
         print("after class declarations")
 
         state = np.array([
@@ -113,7 +112,7 @@ class CooperativeQuad:
             [0.0], # phi
         ])
         
-        t = P.t_start
+        # t = P.t_start
 
         # while t < P.t_end:
         #     t_next_plot = t + P.t_plot
@@ -133,40 +132,48 @@ class CooperativeQuad:
 
             ### xy position controller ###
             x = pose.position.x; y = pose.position.y # Get true x and y values
-            state[0,0] = x; state[1,0] = y; state[2,0] = z
-            xe = xr - x; ye = yr - y # Get position error
+            state[0,0] = x; state[1,0] = y; state[2,0] = z # for plotter
 
-            # Obtain yaw angle from quaternion
             quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
             R = Rotation.from_quat(quat)
             x_global = R.apply([1, 0, 0]) # project to world x-axis
             yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
 
-            x_b = x * np.cos(yaw) + y * np.sin(yaw) # Get x in body frame
-            u = (x_b - x_b_prev) / self.t_phys # u is x-vel in body frame
-            x_b_prev = x_b # Reset previous val
-            y_b = -(x * np.sin(yaw)) + y * np.cos(yaw) # Get y in body frame
-            v = (y_b - y_b_prev) / self.t_phys # v is y-vel in body frame
-            y_b_prev = y_b # Reset previous val
-            xe_b = xe * np.cos(yaw) + ye * np.sin(yaw) # Get errors in body frame
-            ye_b = -(xe * np.sin(yaw)) + ye * np.cos(yaw)
-            xe_b_hist += ((xe_b - u) * self.t_phys) # Accumulate and store histroical error
-            ye_b_hist += ((ye_b - v) * self.t_phys)
-            xe_b_tot = ((xe_b - u) * self.x_kp) + (xe_b_hist * self.x_ki) # Eq. 3.1.11 and Eq. 3.1.12
-            ye_b_tot = ((ye_b - v) * self.y_kp) + (ye_b_hist * self.y_ki)
+            self.msg.linear.x, self.msg.linear.y = xy_ctrl_phys.update(r[0,0], x, r[1,0], y, yaw, self.t_phys)
 
-            # Cap roll (y) and pitch (x) to prevent unstable maneuvers
-            if xe_b_tot >= self.x_cap:
-                xe_b_tot = self.x_cap
-            elif xe_b_tot <= -self.x_cap:
-                xe_b_tot = -self.x_cap
-            elif ye_b_tot >= self.y_cap:
-                ye_b_tot = self.y_cap            
-            elif ye_b_tot <= -self.y_cap:
-                ye_b_tot = -self.y_cap
+            # xe = xr - x; ye = yr - y # Get position error
 
-            self.msg.linear.x = xe_b_tot
-            self.msg.linear.y = ye_b_tot
+            # # Obtain yaw angle from quaternion
+            # quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+            # R = Rotation.from_quat(quat)
+            # x_global = R.apply([1, 0, 0]) # project to world x-axis
+            # yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
+
+            # x_b = x * np.cos(yaw) + y * np.sin(yaw) # Get x in body frame
+            # u = (x_b - x_b_prev) / self.t_phys # u is x-vel in body frame
+            # x_b_prev = x_b # Reset previous val
+            # y_b = -(x * np.sin(yaw)) + y * np.cos(yaw) # Get y in body frame
+            # v = (y_b - y_b_prev) / self.t_phys # v is y-vel in body frame
+            # y_b_prev = y_b # Reset previous val
+            # xe_b = xe * np.cos(yaw) + ye * np.sin(yaw) # Get errors in body frame
+            # ye_b = -(xe * np.sin(yaw)) + ye * np.cos(yaw)
+            # xe_b_hist += ((xe_b - u) * self.t_phys) # Accumulate and store histroical error
+            # ye_b_hist += ((ye_b - v) * self.t_phys)
+            # xe_b_tot = ((xe_b - u) * self.x_kp) + (xe_b_hist * self.x_ki) # Eq. 3.1.11 and Eq. 3.1.12
+            # ye_b_tot = ((ye_b - v) * self.y_kp) + (ye_b_hist * self.y_ki)
+
+            # # Cap roll (y) and pitch (x) to prevent unstable maneuvers
+            # if xe_b_tot >= self.x_cap:
+            #     xe_b_tot = self.x_cap
+            # elif xe_b_tot <= -self.x_cap:
+            #     xe_b_tot = -self.x_cap
+            # elif ye_b_tot >= self.y_cap:
+            #     ye_b_tot = self.y_cap            
+            # elif ye_b_tot <= -self.y_cap:
+            #     ye_b_tot = -self.y_cap
+
+            # self.msg.linear.x = xe_b_tot
+            # self.msg.linear.y = ye_b_tot
 
             ### yaw-rate controller Eq. 3.1.13 ###
             yawe = yawr - yaw
@@ -185,7 +192,7 @@ class CooperativeQuad:
             # to_plot_add = np.array([x, y, z])
             # self.to_plot = np.vstack((self.to_plot, to_plot_add))
 
-            t += self.t_phys
+            # t += self.t_phys
             self.pub.publish(self.msg)
             self.rate.sleep()
 
