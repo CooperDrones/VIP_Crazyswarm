@@ -105,6 +105,7 @@ class CooperativeQuad:
             if math.isnan(pose.orientation.x): # handle nans by setting to last known position
                 pose = pose_prev
             x = pose.position.x; y = pose.position.y; z = pose.position.z
+            
             # Obtain yaw angle from quaternion
             quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
             R = Rotation.from_quat(quat)

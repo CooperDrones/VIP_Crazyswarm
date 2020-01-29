@@ -18,7 +18,7 @@ class CrazyflieDynamics:
             [P.q0],     # 10
             [P.p0],     # 11
         ])
-        # Time step
+        # Time stept_phys
         self.Ts = P.Ts
         # Crazyflie 2.0 mass
         self.m = P.m
