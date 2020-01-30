@@ -54,14 +54,7 @@ class Tester:
             self.rate.sleep()
         
         # Followed this paper, section 3.1, for PID controller
-        # https://arxiv.org/pdf/1608.05786.pdf
-        # Altitude (z) controller gains and initialization
-        self.z_feed_forward = 44000. # Eq. 3.1.8 - a bit less since we do not use UWB module
-        self.z_kp = 11000. # Table 3.1.3
-        self.z_ki = 3500.
-        self.z_kd = 9000.
-        self.z_error_historical = 0.
-        self.thrust_cap_high = 15000 # TODO add caps for all commands
+        # https://arxiv.org/pdf/1608.05destination_listenerTODO add caps for all commands
         self.thrust_cap_low = -20000
         self.z_error_before = 0.
         self.z_error_cap = 1.5
