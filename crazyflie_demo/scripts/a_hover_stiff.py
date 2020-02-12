@@ -2,7 +2,7 @@
 import numpy as np
 import math
 # import scipy.interpolate as si
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 from mpl_toolkits import mplot3d
 
@@ -10,7 +10,7 @@ from mpl_toolkits import mplot3d
 from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys, YawControllerPhys
 import sys
 sys.path.append("../model/")
-from data_plotter import DataPlotter
+# from data_plotter import DataPlotter
 import crazyflie_param as P
 
 # Import ros specifc modules
@@ -18,17 +18,18 @@ import rospy
 from geometry_msgs.msg import Twist, Vector3 # twist used in cmd_vel
 from vicon_bridge.srv import viconGrabPose
 
-plt.ion() # enable interactive plotting
+# plt.ion() # enable interactive plotting
 
 class CooperativeQuad:
     def __init__(self, cf_name):
+        rospy.init_node('test', anonymous=True)
         self.cf_name = cf_name
         self.msg = Twist()
         self.hz = 30.0
         self.t_phys = 1/self.hz # TODO make P.t_phys import
         self.rate = rospy.Rate(self.hz)
 
-        self.pub = rospy.Publisher('crazyflie/cmd_vel', Twist, queue_size=0)
+        self.pub = rospy.Publisher('cmd_vel', Twist, queue_size=0)
         rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
 
@@ -61,28 +62,28 @@ class CooperativeQuad:
         """
         
         print('Start hover controller')
-        pose = self.getPose('crazyflie4') # For vicon nan handler
-        plot = DataPlotter()
+        # self.listener.waitForTransform(self.worldFrame, self.frame, rospy.Time(), rospy.Duration(5.0)) # addition
+        
+        pose = self.getPose(self.cf_name) # For vicon nan handler
+        # plot = DataPlotter()
 
         # Initialize required hover controllers
         altitude_ctrl_phys = AltitudeControllerPhys()
         xy_ctrl_phys = XYControllerPhys()
         yaw_ctrl_phys = YawControllerPhys()
+        print("after class declarations")
 
-        state = np.array([
-            [P.x0],     # 0
-            [P.y0],     # 1
-            [P.z0],     # 2
-            [P.psi0],   # 3
-            [P.theta0], # 4
-            [P.phi0],   # 5
-            [P.u0],     # 6
-            [P.v0],     # 7
-            [P.w0],     # 8
-            [P.r0],     # 9
-            [P.q0],     # 10
-            [P.p0],     # 11
-        ])
+        # state = np.array([
+        #     [P.x0],     # 0
+        #     [P.y0],     # 1
+        #     [P.z0],     # 2
+        #     [P.psi0],   # 3
+        #     [P.theta0], # 4
+        #     [P.phi0],   # 5
+        #     [P.u0],     # 6
+        #     [P.v0],     # 7vicon_object
+        #     [P.p0],     # 11
+        # ])
 
         # for plotter
         r = np.array([
@@ -100,13 +101,14 @@ class CooperativeQuad:
         # while t < t_next_plot:
         # for _ in range(100):
         while not rospy.is_shutdown():
+            # print("in while loop")
             pose_prev = pose
             pose = self.getPose(self.cf_name) # get current pose
             if math.isnan(pose.orientation.x): # handle nans by setting to last known position
                 pose = pose_prev
             x = pose.position.x; y = pose.position.y; z = pose.position.z
             
-            # Obtain yaw angle from quaternion
+            # Obtain yaw angle from quaternion  
             quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
             R = Rotation.from_quat(quat)
             x_global = R.apply([1, 0, 0]) # project to world x-axis
@@ -124,7 +126,7 @@ class CooperativeQuad:
                 print('Found the hover setpoint!')
                 break
 
-            state[0,0] = x; state[1,0] = y; state[2,0] = z # for plotter
+            # state[0,0] = x; state[1,0] = y; state[2,0] = z # for plotter
 
             # t += self.t_phys
             self.pub.publish(self.msg)
@@ -145,11 +147,11 @@ class CooperativeQuad:
 
 
 def main():
-    rospy.init_node('test')
+    
 
     try:
         # Initialize drone control class with arg matching vicon object name
-        cf1 = CooperativeQuad('crazyflie4')
+        cf1 = CooperativeQuad('crazyflie3')
         cf1.dummyForLoop()
 
         # Hover at z=0.5, works tested 1/27/2020
