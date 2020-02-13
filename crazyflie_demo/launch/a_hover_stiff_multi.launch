@@ -12,55 +12,35 @@
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-  <group ns="crazyflie3">
+  <include file="$(find vicon_bridge)/launch/vicon.launch"/>
+
+  <!-- <group ns="crazyflie3">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri3)" />
       <arg name="tf_prefix" value="crazyflie3" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <!-- <include file="$(find crazyflie_controller)/launch/crazyflie2.launch">
-      <arg name="frame" value="$(arg frame3)" />
-    </include> -->
+    <node name="pose" pkg="crazyflie_demo" type="a_hover_stiff_cf3.py" output="screen"> </node>
+  </group> -->
 
-    <node name="test" pkg="crazyflie_demo" type="a_hover_stiff_cf3.py" output="screen">
-      <!-- <param name="frame" value="$(arg frame3)" /> -->
-    </node>
-  </group>
-
-  <!-- <group ns="crazyflie4">
+  <group ns="crazyflie">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri4)" />
-      <arg name="tf_prefix" value="crazyflie4" />
+      <arg name="tf_prefix" value="crazyflie" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <include file="$(find crazyflie_controller)/launch/crazyflie2.launch">
-      <arg name="frame" value="$(arg frame4)" />
-    </include>
+    <node name="pose" pkg="crazyflie_demo" type="a_hover_stiff_cf4.py" output="screen"> </node>
+  </group>
 
-    <node name="test" pkg="crazyflie_demo" type="a_hover_stiff_cf4.py" output="screen">
-      <param name="frame" value="$(arg frame4)" />
-    </node>
-  </group> -->
-
-  <group ns="crazyflie5">
+  <!-- <group ns="crazyflie5">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri5)" />
       <arg name="tf_prefix" value="crazyflie5" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <!-- <include file="$(find crazyflie_controller)/launch/crazyflie2.launch">
-      <arg name="frame" value="$(arg frame5)" />
-    </include> -->
-
-    <node name="test" pkg="crazyflie_demo" type="a_hover_stiff_cf5.py" output="screen">
-      <!-- <param name="frame" value="$(arg frame5)" /> -->
-    </node>
-  </group>
-
-  <!-- run vicon bridge -->
-  <include file="$(find vicon_bridge)/launch/vicon.launch"/>
-
+    <node name="pose" pkg="crazyflie_demo" type="a_hover_stiff_cf5.py" output="screen"> </node>
+  </group> -->
 </launch>
