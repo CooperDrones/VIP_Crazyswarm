@@ -34,13 +34,13 @@ class CooperativeQuad:
         rospy.wait_for_service('/vicon/grab_vicon_pose')
         self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
 
-        # # Followed this paper, section 3.1, for PID controller
-        # # https://arxiv.org/pdf/1608.05786.pdf
-
-    def getPose(self, vicon_object):
-        self.pose = self.pose_getter(vicon_object, vicon_object, 1)
-        self.pose1 = self.pose.pose.pose
-        return self.pose1
+    def callback(self, pose):
+        self.pose = pose
+    
+    def listener(self):
+        rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
+        pose = self.pose
+        rospy.spin()
 
     def dummyForLoop(self):
         # REQUIRED TO OVERCOME INITIAL PUBLISHER BLOCK IMPLEMENTED BY USC
@@ -63,8 +63,7 @@ class CooperativeQuad:
         """
         
         print('Start hover controller')
-        # self.listener.waitForTransform(self.worldFrame, self.frame, rospy.Time(), rospy.Duration(5.0)) # addition
-        
+
         pose = self.getPose(self.cf_name) # For vicon nan handler
         # plot = DataPlotter()
 
@@ -74,41 +73,14 @@ class CooperativeQuad:
         yaw_ctrl_phys = YawControllerPhys()
         print("after class declarations")
 
-        # state = np.array([
-        #     [P.x0],     # 0
-        #     [P.y0],     # 1
-        #     [P.z0],     # 2
-        #     [P.psi0],   # 3
-        #     [P.theta0], # 4
-        #     [P.phi0],   # 5
-        #     [P.u0],     # 6
-        #     [P.v0],     # 7vicon_object
-        #     [P.p0],     # 11
-        # ])
-
-        # for plotter
-        r = np.array([
-            [x_c], # x
-            [y_c], # y
-            [z_c], # z
-            [yaw_c], # psi (yaw)
-        ])
-        
-        # t = P.t_start
-
-        # while t < P.t_end:
-        #     t_next_plot = t + P.t_plot
-
-        # while t < t_next_plot:
-        # for _ in range(100):
         while not rospy.is_shutdown():
-            # print("in while loop")
             pose_prev = pose
-            pose = self.getPose(self.cf_name) # get current pose
-            if math.isnan(pose.orientation.x): # handle nans by setting to last known position
+            pose = self.pose
+            quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
+            x = pose.transform.translation.x; y = pose.transform.translation.y; z = pose.transform.translation.z
+            if math.isnan(pose.transform.translation.x): # handle nans by setting to last known position
                 pose = pose_prev
-            x = pose.position.x; y = pose.position.y; z = pose.position.z
-            
+                
             # Obtain yaw angle from quaternion  
             quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
             R = Rotation.from_quat(quat)
@@ -127,20 +99,8 @@ class CooperativeQuad:
                 print('Found the hover setpoint!')
                 # break # include to move to other function
 
-            # state[0,0] = x; state[1,0] = y; state[2,0] = z # for plotter
-
-            # t += self.t_phys
             self.pub.publish(self.msg)
             self.rate.sleep()
-
-            
-        #     plot.update(t, r, state, u)
-        #     plt.pause(0.000001)
-
-        # # Keeps the program from closing until the user presses a button.
-        # print('Press key to close')
-        # plt.waitforbuttonpress()
-        # plt.close()
 
     def land(self):
         print("Land function called")
@@ -148,7 +108,6 @@ class CooperativeQuad:
 
 
 def main():
-    # rospy.init_node('test')
     try:
         # Initialize drone control class with arg matching vicon object name
         cf1 = CooperativeQuad('crazyflie4')
