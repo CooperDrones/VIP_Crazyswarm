@@ -18,6 +18,6 @@
 
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 
-  <node name="test" pkg="crazyflie_demo" type="a_hover_stiff.py" output="screen"> </node>
+  <node name="test" pkg="crazyflie_demo" type="a_hover_stiff_multi.py" output="screen"> </node>
 
 </launch>
