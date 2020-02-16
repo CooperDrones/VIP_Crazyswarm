@@ -33,10 +33,12 @@ class DataPlotter:
 
         # Instatiate lists to hold the time and data histories
         self.time_history = [] # time
-        self.zref_history = [] # reference position z_r
-        self.z_history = [] # position z
+        self.xref_history = [] # reference position x_c
         self.x_history = [] # position x
+        self.yref_history = [] # reference position y_c
         self.y_history = [] # position y
+        self.zref_history = [] # reference position z_c
+        self.z_history = [] # position z
 
         # # Added rotational components
         # self.psiref_history = []
@@ -48,9 +50,9 @@ class DataPlotter:
 
         # Create a handle for every subplot
         self.handle = []
-        self.handle.append(MyPlot(self.ax[0], ylabel='z(m)', title='CF Data'))
-        self.handle.append(MyPlot(self.ax[1], ylabel='x(m)'))
-        self.handle.append(MyPlot(self.ax[2], xlabel='t(s)', ylabel='y(m)'))
+        self.handle.append(MyPlot(self.ax[0], ylabel='x(m)', title='CF Data'))
+        self.handle.append(MyPlot(self.ax[1], ylabel='y(m)'))
+        self.handle.append(MyPlot(self.ax[2], xlabel='t(s)', ylabel='z(m)'))
 
         # self.handle.append(MyPlot(self.ax[0,1], ylabel='psi(deg)'))
         # self.handle.append(MyPlot(self.ax[1,1], ylabel='theta(deg)'))
@@ -59,11 +61,14 @@ class DataPlotter:
     def update(self, t, reference, states, ctrl):
         # Update the time history of all plot variables
         self.time_history.append(t)
-        self.zref_history.append(reference.item(2))
+        self.xref_history.append(reference.item(0))
         self.x_history.append(states.item(0))
+        self.yref_history.append(reference.item(1))
         self.y_history.append(states.item(1))
+        self.zref_history.append(reference.item(2))
         self.z_history.append(states.item(2))
 
+        # Add angular control views
         # self.psiref_history.append(reference.item(3))
         # self.psi_history.append(states.item(3))
         # self.thetaref_history.append(reference.item(4))
@@ -72,9 +77,9 @@ class DataPlotter:
         # self.phi_history.append(states.item(5))
 
         # Update the plots with associated handles
-        self.handle[0].update(self.time_history, [self.z_history, self.zref_history])
-        self.handle[1].update(self.time_history, [self.x_history])
-        self.handle[2].update(self.time_history, [self.y_history])
+        self.handle[0].update(self.time_history, [self.x_history, self.xref_history])
+        self.handle[1].update(self.time_history, [self.y_history, self.yref_history])
+        self.handle[2].update(self.time_history, [self.z_history, self.zref_history])
 
         # self.handle[3].update(self.time_history, [self.psi_history, self.psiref_history])
         # self.handle[4].update(self.time_history, [self.theta_history, self.thetaref_history])
