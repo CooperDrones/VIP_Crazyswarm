@@ -9,20 +9,6 @@
   <arg name="uri5" default="radio://0/57/2M/E7E7E7E705" />
   <arg name="frame5" default="/vicon/crazyflie5/crazyflie5" />
 
-  <!-- Works with drone 4!! 20200213 -->
-  <!-- <arg name="uri" default="radio://0/80/2M/E7E7E7E704" />
-  <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch"> </include>
-
-  <group ns="crazyflie4">
-    <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
-      <param name="uri" value="$(arg uri4)" />
-      <param name="tf_prefix" value="crazyflie4" />
-      <param name="enable_logging" value="False" />
-    </node>
-  </group>
-
-  <node name="test4" pkg="crazyflie_demo" type="a_hover_stiff_cf4.py" output="screen"> </node> -->
-
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
