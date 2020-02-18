@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-class WaveGenerator:
+class TrajGenerator:
     def __init__(self, hz=30.0):
         self.hz = hz
         self.t_phys = 1/self.hz
 
-    def genWaveTraj(self, A, omega, no_osc):
+    def genWaveTraj(self, A, omega, no_osc, no_drones, show_plots=False):
         """
         Generate oscillation keeping prescibed x position
         and varying y position and velocity
@@ -42,18 +42,41 @@ class WaveGenerator:
             t += self.t_phys
         
         # print(traj.shape)
+        num_rows = 2; num_cols = 1
+        fig, ax = plt.subplots(num_rows, num_cols)
 
-        fig, ax = plt.subplots()
-        ax.plot(traj[:,2], traj[:,0], c='r', label='pos') # plot pos vs. time
-        ax.plot(traj[:,2], traj[:,1], c='b', label='vel') # plot vel vs. time
-        ax.legend()
+        ax[0].plot(traj[:,2], traj[:,0], c='r', label='pos') # plot pos vs. time
+        ax[0].plot(traj[:,2], traj[:,1], c='b', label='vel') # plot vel vs. time
+        ax[0].set_title('Standing Wave Trajectory')
+        ax[0].set_ylabel('position [m] and velocty [m/s]')
+        ax[0].set_xlabel('time [s]')
+        ax[0].legend()
 
+        x = np.linspace(-1, 1, 100)
+        y = np.cos(x)
+        ax[-1].plot(x, y, c='b')
+        
+        # Plot the initial state of the drones 
+        sep = 2.0 / (no_drones + 1.0) 
+        print('sep is', sep)
+        init_pos = -1 + sep
+        dist = init_pos
+        for _ in range(no_drones):
+            print('dist is', dist)
+            ax[-1].scatter(dist, np.cos(dist), c='r', marker='x')
+            dist += sep
+
+        # ax[-1].set_title('Initial Position of drones')
+        ax[-1].set_ylabel('y [m]')
+        ax[-1].set_xlabel('x [m]')
+        ax[-1].legend()
+
+        return traj
 
 def main():
-    wave = WaveGenerator()
-    frequency = 0.2
-    wave.genWaveTraj(1.0, frequency, 2)
-    wave.genWaveTraj(0.5, frequency, 2)
+    wave_traj = TrajGenerator()
+    frequency = 0.5
+    traj = wave_traj.genWaveTraj(1.0, frequency, 2, 3, True)
 
     plt.show()
 
