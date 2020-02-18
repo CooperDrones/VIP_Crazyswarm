@@ -33,22 +33,22 @@
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="pose3" pkg="crazyflie_demo" type="a_hover_stiff_cf3.py" output="screen"> 
+    <node name="controller" pkg="crazyflie_demo" type="a_hover_stiff_cf3.py" output="screen"> 
       <param name="frame" value="$(arg frame3)" />
     </node>
   </group>
 
-  <!-- <group ns="crazyflie4">
+  <group ns="crazyflie4">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri4)" />
       <arg name="tf_prefix" value="crazyflie4" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="pose4" pkg="crazyflie_demo" type="a_hover_stiff_cf4.py" output="screen"> 
+    <node name="controller" pkg="crazyflie_demo" type="a_hover_stiff_cf4.py" output="screen"> 
       <param name="frame" value="$(arg frame4)" />
     </node>
-  </group> -->
+  </group>
 
   <group ns="crazyflie5">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
@@ -57,7 +57,7 @@
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="pose5" pkg="crazyflie_demo" type="a_hover_stiff_cf5.py" output="screen"> 
+    <node name="controller" pkg="crazyflie_demo" type="a_hover_stiff_cf5.py" output="screen"> 
       <param name="frame" value="$(arg frame5)" />
     </node>
   </group>

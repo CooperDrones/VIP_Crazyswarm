@@ -27,8 +27,8 @@ class CooperativeQuad:
         self.t_phys = 1/self.hz # TODO make P.t_phys import
         self.rate = rospy.Rate(self.hz)
 
-        # self.pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
-        self.pub = rospy.Publisher(self.cf_name + "/cmd_vel", Twist, queue_size=10)
+        self.pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        # self.pub = rospy.Publisher(self.cf_name + "/cmd_vel", Twist, queue_size=10)
 
         # TOPIC
         self.pose = TransformStamped()
@@ -39,7 +39,7 @@ class CooperativeQuad:
         self.pose = pose
     
     def listener(self):
-        rospy.Subscriber("/vicon" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
+        rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
         pose = self.pose
         rospy.spin()
 
@@ -64,7 +64,7 @@ class CooperativeQuad:
         """
         print(self.cf_name + ' started hover controller')
 
-        rospy.Subscriber("/vicon/" + self.cf_name + self.cf_name, TransformStamped, self.callback)
+        rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
         pose = self.pose
 
         # Initialize required hover controllers
@@ -96,7 +96,7 @@ class CooperativeQuad:
                 (y > (y_c - goal_r) and y < (y_c + goal_r)) and \
                 (z > (z_c - goal_r - offset) and z < (z_c + goal_r + offset)):
                 print(self.cf_name + ' found the hover setpoint!')
-                break # include to move to other function
+                # break # include to move to other function
 
             self.pub.publish(self.msg)
             self.rate.sleep()
