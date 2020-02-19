@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from a_hover_stiff_multi import CooperativeQuad
+from a_cooperative_quad import CooperativeQuad
 import rospy
 
 if __name__ == '__main__':

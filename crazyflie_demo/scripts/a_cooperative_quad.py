@@ -7,7 +7,7 @@ from scipy.spatial.transform import Rotation
 from mpl_toolkits import mplot3d
 
 # Import crazyflie model modules
-from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys, YawControllerPhys
+from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys, YawControllerPhys, XYControllerTrajPhys
 import sys
 sys.path.append("../model/")
 from data_plotter import DataPlotter
@@ -96,7 +96,61 @@ class CooperativeQuad:
                 (y > (y_c - goal_r) and y < (y_c + goal_r)) and \
                 (z > (z_c - goal_r - offset) and z < (z_c + goal_r + offset)):
                 print(self.cf_name + ' found the hover setpoint!')
-                # break # include to move to other function
+                break # include to move to other function
+
+            self.pub.publish(self.msg)
+            self.rate.sleep()
+
+    def trajTrackingStandingWave(self, traj, z_c):
+        """
+        Runs a trajectory tracking algorithm that follows a standing wave
+
+        Parameters
+        ----------
+        traj = trajectory that increments at each loop iteration
+        """
+        print(self.cf_name + ' started tracking standing wave controller')
+
+        rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
+        pose = self.pose
+
+        # Initialize required controllers
+        altitude_ctrl_phys = AltitudeControllerPhys()
+        xy_ctrl_phys = XYControllerPhys()
+        xy_traj_ctrl_phys = XYControllerTrajPhys()
+        yaw_ctrl_phys = YawControllerPhys()
+        
+        y_c = 0.0; v_c = 0.0 # keep y values equal to zero for now 
+        yaw_c = 0.0
+
+        # Will finish at end of trajectory matrix, 1 entry per loop interation
+        for i in range(traj.shape[0] - 1):
+            print('completion stage is {} out of {}'.format(i, traj.shape[0]))
+            print('traj x is {}'.format(traj[i, 0]))
+            pose_prev = pose
+            pose = self.pose
+            quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
+            x = pose.transform.translation.x; y = pose.transform.translation.y; z = pose.transform.translation.z
+            if math.isnan(pose.transform.translation.x): # handle nans by setting to last known position
+                pose = pose_prev
+            
+            # Obtain yaw angle from quaternion
+            R = Rotation.from_quat(quat)
+            x_global = R.apply([1, 0, 0]) # project to world x-axis
+            yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
+
+            # TODO: make flexible with y values
+            r_t      = np.array([traj[i, 0], y_c]) # traj pos values
+            r_t_vect = np.array([traj[i+1, 0], y_c]) - r_t # vector from current pos to next pos in traj
+            rd_t     = np.array([traj[i, 1], v_c]) # traj vel values
+            r        = np.array([x, y]) # actual drone pos
+
+            self.msg.linear.z = altitude_ctrl_phys.update(z_c, z)
+            self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c)
+            self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
+
+            # print('x commanded val is: ', self.msg.linear.x)
+            # print('y commanded val is: ', self.msg.linear.y)
 
             self.pub.publish(self.msg)
             self.rate.sleep()

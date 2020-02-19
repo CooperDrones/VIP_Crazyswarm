@@ -12,17 +12,17 @@
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-  <group ns="crazyflie3">
+  <!-- <group ns="crazyflie3">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri3)" />
       <arg name="tf_prefix" value="crazyflie3" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="controller" pkg="crazyflie_demo" type="a_hover_stiff_cf3.py" output="screen"> 
+    <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf3.py" output="screen"> 
       <param name="frame" value="$(arg frame3)" />
     </node>
-  </group>
+  </group> -->
 
   <group ns="crazyflie4">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
@@ -31,22 +31,22 @@
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="controller" pkg="crazyflie_demo" type="a_hover_stiff_cf4.py" output="screen"> 
+    <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf4.py" output="screen"> 
       <param name="frame" value="$(arg frame4)" />
     </node>
   </group>
 
-  <group ns="crazyflie5">
+  <!-- <group ns="crazyflie5">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri5)" />
       <arg name="tf_prefix" value="crazyflie5" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="controller" pkg="crazyflie_demo" type="a_hover_stiff_cf5.py" output="screen"> 
+    <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf5.py" output="screen"> 
       <param name="frame" value="$(arg frame5)" />
     </node>
-  </group>
+  </group> -->
 
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 </launch>
