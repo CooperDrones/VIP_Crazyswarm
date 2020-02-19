@@ -3,6 +3,7 @@ import numpy as np
 # import math
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
+import pickle
 
 # Import crazyflie model modules
 import sys
@@ -112,9 +113,9 @@ class XYControllerPhys:
         return phi_c, theta_c
 
 class XYControllerTrajPhys:
-    def __init__(self, kp=20.0, kd=2.0, cap=15.0):
+    def __init__(self, kp=10.0, kd=1.0, cap=15.0):
         self.kp = kp
-        self.kd = kd
+        self.kd = kd # adding damping
         self.cap = cap
 
         self.r_prev = np.array([0.0, 0.0])
@@ -123,6 +124,14 @@ class XYControllerTrajPhys:
 
         self.t_phys = 1 / 30.0
         self.g = 9.80665
+
+        # For plotting
+        self.time_now = 0.0
+        self.time_list = []
+        self.xd_list = []
+        self.yd_list = []
+        self.xd_t_list = []
+        self.yd_t_list = []
     
     def normalize(self, a):
         """
@@ -165,13 +174,34 @@ class XYControllerTrajPhys:
 
         # Calculate velocity error component
         rd = (r - self.r_prev) / self.t_phys
+        self.r_prev = r
+
+        # TODO: make some plots to check velocity smoothness
+        # using pickle, tune parameters
+        # let Prof. know if we need a filter derivative
+        print("r is ", r)
+        print("rd is ", rd)
         e_v = (rd_t - rd)
 
+        self.time_now += self.t_phys
+
+        self.time_list.append(self.time_now)
+        # print("the time list is ", len(self.time_list))
+        self.xd_list.append(rd[0])
+        # print("the rd[0] list is ", len(self.xd_list))
+        self.yd_list.append(rd[1])
+        # print("the rd[1] list is ", len(self.yd_list))
+        self.xd_t_list.append(rd_t[0])
+        self.yd_t_list.append(rd_t[1])
+
         # Calculate accel vector and convert to desired angular commands
+        print("total position component {}".format(self.kp * e_p))
+        print("total velocity component {}".format(self.kd * e_v))
+        
         rdd_t = self.kp * e_p + self.kd * e_v
-        theta_c = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
+        phi_c   = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
             rdd_t[1] * np.cos(yaw_c))
-        phi_c   = 1.0/self.g * (rdd_t[0] * np.cos(yaw_c) + \
+        theta_c = 1.0/self.g * (rdd_t[0] * np.cos(yaw_c) + \
             rdd_t[1] * np.sin(yaw_c))
 
         # Cap roll (y) and pitch (x) to prevent unstable maneuvers
@@ -181,6 +211,10 @@ class XYControllerTrajPhys:
             theta_c = np.sign(theta_c) * self.cap
 
         return phi_c, theta_c
+    
+    def exportPlotData(self):
+        with open("derivative_data.txt", "wb") as fp:
+            pickle.dump(self.time_list, fp)
 
 class YawControllerPhys:
     def __init__(self, kp=-20.0):

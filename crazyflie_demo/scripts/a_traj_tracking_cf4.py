@@ -2,6 +2,8 @@
 from a_cooperative_quad import CooperativeQuad
 from a_traj_generator import StandingWaveGenerator
 import rospy
+import time
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     wave_traj = StandingWaveGenerator()

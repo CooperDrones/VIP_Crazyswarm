@@ -2,9 +2,10 @@
 import numpy as np
 import math
 # import scipy.interpolate as si
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 from mpl_toolkits import mplot3d
+import pickle
 
 # Import crazyflie model modules
 from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys, YawControllerPhys, XYControllerTrajPhys
@@ -98,7 +99,6 @@ class CooperativeQuad:
                     print(self.cf_name + ' found the hover setpoint!')
                     break # include to move to other function
 
-
             self.pub.publish(self.msg)
             self.rate.sleep()
 
@@ -134,7 +134,7 @@ class CooperativeQuad:
             x = pose.transform.translation.x; y = pose.transform.translation.y; z = pose.transform.translation.z
             if math.isnan(pose.transform.translation.x): # handle nans by setting to last known position
                 pose = pose_prev
-            
+        
             # Obtain yaw angle from quaternion
             R = Rotation.from_quat(quat)
             x_global = R.apply([1, 0, 0]) # project to world x-axis
@@ -150,11 +150,14 @@ class CooperativeQuad:
             self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c)
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
-            # print('x commanded val is: ', self.msg.linear.x)
-            # print('y commanded val is: ', self.msg.linear.y)
+            print('x commanded val is: ', self.msg.linear.x)
+            print('y commanded val is: ', self.msg.linear.y)
 
             self.pub.publish(self.msg)
             self.rate.sleep()
+        
+        # Save out data through pickle
+        xy_traj_ctrl_phys.exportPlotData()
 
     def land(self):
         print(self.cf_name + ' land function called')
