@@ -51,7 +51,7 @@ class CooperativeQuad:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
-    def hoverStiff(self, x_c, y_c, z_c, yaw_c, goal_r):
+    def hoverStiff(self, x_c, y_c, z_c, yaw_c, goal_r, is_break=True):
         """
         Hovers the drone to an accurate global setpoint
         Drone will stay at setpoint until other function is called
@@ -91,12 +91,13 @@ class CooperativeQuad:
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
             ### Goal behavior ###
-            offset = 0.05 # additional z boundary to speed tests
-            if (x > (x_c - goal_r) and x < (x_c + goal_r)) and \
-                (y > (y_c - goal_r) and y < (y_c + goal_r)) and \
-                (z > (z_c - goal_r - offset) and z < (z_c + goal_r + offset)):
-                print(self.cf_name + ' found the hover setpoint!')
-                break # include to move to other function
+            if is_break:
+                if (x > (x_c - goal_r) and x < (x_c + goal_r)) and \
+                    (y > (y_c - goal_r) and y < (y_c + goal_r)) and \
+                    (z > (z_c - goal_r) and z < (z_c + goal_r)):
+                    print(self.cf_name + ' found the hover setpoint!')
+                    break # include to move to other function
+
 
             self.pub.publish(self.msg)
             self.rate.sleep()
