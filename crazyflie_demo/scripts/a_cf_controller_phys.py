@@ -60,8 +60,8 @@ class XYControllerPhys:
         self.xe_b_hist = 0.0
         self.ye_b_hist = 0.0
 
+        # TODO: update this to follow parameter file
         self.t_phys2 = 1/30.0
-
 
     def update(self, x_c, x, y_c, y, yaw):
         """
@@ -77,8 +77,8 @@ class XYControllerPhys:
 
         Returns
         -------
-        xe_b_tot = total body-frame x position error which maps to commanded yaw angle 
-        ye_b_tot = total body-frame y position error which maps to commanded pitch angle
+        phi_c = total body-frame x position error which maps to commanded pitch angle 
+        theta_c = total body-frame y position error which maps to commanded roll angle
         """
         xe = x_c - x; ye = y_c - y # Get position error
         # print("class implementation\nxe: {}\nye: {}".format(xe, ye))
@@ -99,20 +99,91 @@ class XYControllerPhys:
         self.xe_b_hist += ((xe_b - u) * self.t_phys2) # Accumulate and store histroical error
         self.ye_b_hist += ((ye_b - v) * self.t_phys2)
 
-        xe_b_tot = ((xe_b - u) * self.kp) + (self.xe_b_hist * self.ki) # Eq. 3.1.11 and Eq. 3.1.12
-        ye_b_tot = ((ye_b - v) * (-self.kp)) + (self.ye_b_hist * (-self.ki))
+        phi_c = ((xe_b - u) * self.kp) + (self.xe_b_hist * self.ki) # Eq. 3.1.11 and Eq. 3.1.12
+        theta_c = ((ye_b - v) * (-self.kp)) + (self.ye_b_hist * (-self.ki))
 
         # Cap roll (y) and pitch (x) to prevent unstable maneuvers
-        if xe_b_tot >= self.cap:
-            xe_b_tot = self.cap
-        elif xe_b_tot <= -self.cap:
-            xe_b_tot = -self.cap
-        elif ye_b_tot >= self.cap:
-            ye_b_tot = self.cap            
-        elif ye_b_tot <= -self.cap:
-            ye_b_tot = -self.cap
+        if np.abs(phi_c) >= self.cap:
+            phi_c =  np.sign(phi_c) * self.cap
+
+        if np.abs(theta_c) >= self.cap:
+            theta_c = np.sign(theta_c) * self.cap
         
-        return xe_b_tot, ye_b_tot
+        return phi_c, theta_c
+
+class XYControllerTrajPhys:
+    def __init__(self, kp=20.0, kd=2.0, cap=15.0):
+        self.kp = kp
+        self.kd = kd
+        self.cap = cap
+
+        self.r_prev = np.array([0.0, 0.0])
+        # self.xe_b_hist = 0.0
+        # self.ye_b_hist = 0.0
+
+        self.t_phys = 1 / 30.0
+        self.g = 9.80665
+    
+    def normalize(self, a):
+        """
+        Return the normal unit vector.
+
+        param a: vector ([float])
+        """
+        normal = np.empty_like(a)
+        normal[0] = -a[1]
+        normal[1] = a[0]
+        normal = normal / np.linalg.norm(normal)
+        return normal
+
+    def update(self, r_t, rd_t, r_t_vect, r, yaw_c):
+        """
+        Off-Board trajectory PID controller
+
+        Parameters
+        ----------
+        r_t      = traj pos
+        rd_t     = traj vel
+        r_t_vect = vector from current to next traj point
+        r        = actual drone pos
+        yaw_c    = yaw setpoint
+
+        Returns
+        -------
+        phi_c = total body-frame x position error which maps to commanded pitch angle 
+        theta_c = total body-frame y position error which maps to commanded roll angle
+        """
+        # Calculate position component
+        t_unit = r_t_vect / np.linalg.norm(r_t_vect)
+        n_unit = self.normalize(t_unit)
+
+        print("t_unit is ", t_unit)
+        print("n_unit is ", n_unit)
+
+        e_p = np.dot(np.dot((r_t - r), n_unit), n_unit) \
+            + np.dot(np.dot((r_t - r), t_unit), t_unit)
+
+        # Calculate velocity component
+        rd = (r - self.r_prev) / self.t_phys
+        e_v = (rd_t - rd)
+
+        rdd_t = self.kp * e_p + self.kd * e_v
+
+        print(rdd_t)
+
+        theta_c = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
+            rdd_t[1] * np.cos(yaw_c))
+        phi_c   = 1.0/self.g * (rdd_t[0] * np.cos(yaw_c) + \
+            rdd_t[1] * np.sin(yaw_c))
+
+        # Cap roll (y) and pitch (x) to prevent unstable maneuvers
+        if np.abs(phi_c) >= self.cap:
+            phi_c =  np.sign(phi_c) * self.cap
+
+        if np.abs(theta_c) >= self.cap:
+            theta_c = np.sign(theta_c) * self.cap
+
+        return phi_c, theta_c
 
 class YawControllerPhys:
     def __init__(self, kp=-20.0):
@@ -129,8 +200,8 @@ class YawControllerPhys:
 
         Returns
         -------
-        yawe_tot = total yaw angle error which maps to commanded yaw rate
+        psid_c = total yaw angle error which maps to commanded yaw rate
         """
         yawe = yaw_c - yaw
-        yawe_tot = self.kp * yawe
-        return yawe_tot
+        psid_c = self.kp * yawe
+        return psid_c
