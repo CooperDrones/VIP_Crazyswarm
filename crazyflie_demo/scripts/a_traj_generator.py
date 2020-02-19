@@ -75,8 +75,12 @@ class StandingWaveGenerator:
 
 def main():
     wave_traj = StandingWaveGenerator()
-    frequency = 0.5
-    traj = wave_traj.genWaveTraj(0.5, frequency, 1, 3, True)
+    frequency = 0.3
+    amplitude = 0.5
+    no_oscillations = 1.5
+    no_drones = 3
+    traj = wave_traj.genWaveTraj(amplitude, frequency, \
+        no_oscillations, no_drones, True)
     print(traj.shape[0])
 
     plt.show()

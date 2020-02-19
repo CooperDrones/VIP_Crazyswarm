@@ -157,20 +157,18 @@ class XYControllerTrajPhys:
         t_unit = r_t_vect / np.linalg.norm(r_t_vect)
         n_unit = self.normalize(t_unit)
 
-        print("t_unit is ", t_unit)
-        print("n_unit is ", n_unit)
+        # print("t_unit is ", t_unit)
+        # print("n_unit is ", n_unit)
 
         e_p = np.dot(np.dot((r_t - r), n_unit), n_unit) \
             + np.dot(np.dot((r_t - r), t_unit), t_unit)
 
-        # Calculate velocity component
+        # Calculate velocity error component
         rd = (r - self.r_prev) / self.t_phys
         e_v = (rd_t - rd)
 
+        # Calculate accel vector and convert to desired angular commands
         rdd_t = self.kp * e_p + self.kd * e_v
-
-        print(rdd_t)
-
         theta_c = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
             rdd_t[1] * np.cos(yaw_c))
         phi_c   = 1.0/self.g * (rdd_t[0] * np.cos(yaw_c) + \
@@ -179,7 +177,6 @@ class XYControllerTrajPhys:
         # Cap roll (y) and pitch (x) to prevent unstable maneuvers
         if np.abs(phi_c) >= self.cap:
             phi_c =  np.sign(phi_c) * self.cap
-
         if np.abs(theta_c) >= self.cap:
             theta_c = np.sign(theta_c) * self.cap
 

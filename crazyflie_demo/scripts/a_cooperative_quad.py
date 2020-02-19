@@ -125,6 +125,8 @@ class CooperativeQuad:
 
         # Will finish at end of trajectory matrix, 1 entry per loop interation
         for i in range(traj.shape[0] - 1):
+            print('completion stage is {} out of {}'.format(i, traj.shape[0]))
+            print('traj x is {}'.format(traj[i, 0]))
             pose_prev = pose
             pose = self.pose
             quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
@@ -136,9 +138,6 @@ class CooperativeQuad:
             R = Rotation.from_quat(quat)
             x_global = R.apply([1, 0, 0]) # project to world x-axis
             yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
-            
-            # print('global x pos is: ', x)
-            # print('global y pos is: ', y)
 
             # TODO: make flexible with y values
             r_t      = np.array([traj[i, 0], y_c]) # traj pos values
@@ -147,12 +146,11 @@ class CooperativeQuad:
             r        = np.array([x, y]) # actual drone pos
 
             self.msg.linear.z = altitude_ctrl_phys.update(z_c, z)
-            # self.msg.linear.x, self.msg.linear.y = xy_ctrl_phys.update(x_c, x, y_c, y, yaw)
             self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c)
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
-            print('x commanded val is: ', self.msg.linear.x)
-            print('y commanded val is: ', self.msg.linear.y)
+            # print('x commanded val is: ', self.msg.linear.x)
+            # print('y commanded val is: ', self.msg.linear.y)
 
             self.pub.publish(self.msg)
             self.rate.sleep()
