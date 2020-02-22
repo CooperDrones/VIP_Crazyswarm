@@ -20,7 +20,7 @@ from geometry_msgs.msg import Twist, Vector3, TransformStamped # twist used in c
 from vicon_bridge.srv import viconGrabPose
 
 class CooperativeQuad:
-    def __init__(self, cf_name):
+    def __init__(self, cf_name, is_main=False):
         rospy.init_node('test', anonymous=True)
         self.cf_name = cf_name
         self.msg = Twist()
@@ -28,8 +28,10 @@ class CooperativeQuad:
         self.t_phys = 1/self.hz # TODO make P.t_phys import
         self.rate = rospy.Rate(self.hz)
 
-        self.pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
-        # self.pub = rospy.Publisher(self.cf_name + "/cmd_vel", Twist, queue_size=10)
+        if is_main:
+            self.pub = rospy.Publisher(self.cf_name + "/cmd_vel", Twist, queue_size=10)
+        else:
+            self.pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
         # TOPIC
         self.pose = TransformStamped()
@@ -121,13 +123,14 @@ class CooperativeQuad:
         xy_traj_ctrl_phys = XYControllerTrajPhys()
         yaw_ctrl_phys = YawControllerPhys()
         
-        y_c = 0.0; v_c = 0.0 # keep y values equal to zero for now 
+        y_c = 0.0; v_c = 0.0; vd_c = 0.0 # keep y values equal to zero for now 
         yaw_c = 0.0
 
         # Will finish at end of trajectory matrix, 1 entry per loop interation
         for i in range(traj.shape[0] - 1):
             print('completion stage is {} out of {}'.format(i, traj.shape[0]))
             print('traj x is {}'.format(traj[i, 0]))
+            print('traj x_vel is {}'.format(traj[i, 1]))
             pose_prev = pose
             pose = self.pose
             quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
@@ -144,20 +147,23 @@ class CooperativeQuad:
             r_t      = np.array([traj[i, 0], y_c]) # traj pos values
             r_t_vect = np.array([traj[i+1, 0], y_c]) - r_t # vector from current pos to next pos in traj
             rd_t     = np.array([traj[i, 1], v_c]) # traj vel values
+            rdd_t    = np.array([traj[i, 2], vd_c])
             r        = np.array([x, y]) # actual drone pos
 
             self.msg.linear.z = altitude_ctrl_phys.update(z_c, z)
-            self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c)
+            self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c, rdd_t)
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
-            print('x commanded val is: ', self.msg.linear.x)
-            print('y commanded val is: ', self.msg.linear.y)
+            print('phi   (commands -y) is: ', self.msg.linear.x)
+            print('theta (commands +x) is: ', self.msg.linear.y)
+
+            # self.msg.linear.x = 0.0; self.msg.linear.y = 0.0 # set to tune trim values
 
             self.pub.publish(self.msg)
             self.rate.sleep()
         
         # Save out data through pickle
-        xy_traj_ctrl_phys.exportPlotData()
+        xy_traj_ctrl_phys.pickleData()
 
     def land(self):
         print(self.cf_name + ' land function called')
@@ -166,13 +172,12 @@ class CooperativeQuad:
 def main():
     try:
         # Initialize drone control class with arg matching vicon object name
-        cf1 = CooperativeQuad('crazyflie4')
+        cf1 = CooperativeQuad('crazyflie4', True)
         cf1.dummyForLoop()
 
         # Hover at z=0.5, works tested 1/27/2020
         goal_r = 0.1
-        cf1.hoverStiff(0.0, 0.0, 0.5, 0.0, goal_r)
-        cf1.land()
+        cf1.hoverStiff(0.0, 0.0, 0.5, 0.0, goal_r, False) # hover in place
 
     except Exception as e:
         print(e)
