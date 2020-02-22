@@ -151,7 +151,7 @@ class CooperativeQuad:
             r        = np.array([x, y]) # actual drone pos
 
             self.msg.linear.z = altitude_ctrl_phys.update(z_c, z)
-            self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c, rdd_t)
+            self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c, rdd_t, True)
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
             print('phi   (commands -y) is: ', self.msg.linear.x)
@@ -164,10 +164,6 @@ class CooperativeQuad:
         
         # Save out data through pickle
         xy_traj_ctrl_phys.pickleData()
-
-    def land(self):
-        print(self.cf_name + ' land function called')
-        self.hoverStiff(0.0, 0.0, 0.2, 0.0, 0.075)
 
 def main():
     try:

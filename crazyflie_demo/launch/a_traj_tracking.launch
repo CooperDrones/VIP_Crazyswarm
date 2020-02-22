@@ -29,6 +29,8 @@
       <arg name="uri" value="$(arg uri4)" />
       <arg name="tf_prefix" value="crazyflie4" />
       <arg name="enable_logging" value="False" />
+      <arg name="roll_trim" value="-0.6" />
+      <arg name="pitch_trim" value="0.1" />
     </include>
 
     <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf4.py" output="screen"> 
@@ -47,6 +49,8 @@
       <param name="frame" value="$(arg frame5)" />
     </node>
   </group> -->
+
+  <!-- <node name="crazyflie_plot_poses" pkg="crazyflie_demo" type="plot_poses.py" output="screen"> </node> -->
 
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 </launch>
