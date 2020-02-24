@@ -154,8 +154,8 @@ class CooperativeQuad:
             self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c, rdd_t, True)
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
-            print('phi   (commands -y) is: ', self.msg.linear.x)
-            print('theta (commands +x) is: ', self.msg.linear.y)
+            print('phi   (commands +x) is: ', self.msg.linear.x)
+            print('theta (commands -y) is: ', self.msg.linear.y)
 
             # self.msg.linear.x = 0.0; self.msg.linear.y = 0.0 # set to tune trim values
 

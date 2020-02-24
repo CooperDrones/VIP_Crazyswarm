@@ -117,7 +117,7 @@ class XYControllerPhys:
         return phi_c, theta_c
 
 class XYControllerTrajPhys:
-    def __init__(self, kp=10.0, kd=10.0, k_ff = 10.0, cap=15.0):
+    def __init__(self, kp=100.0, kd=100.0, k_ff = 10.0, cap=20.0):
         self.kp = kp
         self.kd = kd # adding damping
         self.k_ff = k_ff
@@ -187,7 +187,7 @@ class XYControllerTrajPhys:
             # + np.dot(np.dot((r_t - r), t_unit), t_unit)
 
         # Calculate velocity error component
-        rd = (self.r_prev - r) / self.t_phys
+        rd = (r - self.r_prev) / self.t_phys
         self.r_prev = r
 
         # TODO: make some plots to check velocity smoothness
@@ -195,8 +195,8 @@ class XYControllerTrajPhys:
         # let Prof. know if we need a filter derivative
         print("r is ", r)
         print("rd is ", rd)
-        # e_v = rd_t - rd
-        e_v = np.dot(np.dot((rd_t - rd), t_unit), t_unit)
+        e_v = rd_t - rd
+        # e_v = np.dot(np.dot((rd_t - rd), t_unit), t_unit)
 
         # Save out data if desired
         if is_pickling:
@@ -223,9 +223,9 @@ class XYControllerTrajPhys:
             # + self.k_ff * rdd_t # optional feedforward component
         print("total rdd_t {}".format(rdd_t))
 
-        phi_c   = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
+        theta_c = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
             rdd_t[1] * np.cos(yaw_c)) # equivalent to movement in -y direction
-        theta_c = 1.0/self.g * (rdd_t[0] * np.cos(yaw_c) + \
+        phi_c   = 1.0/self.g * (rdd_t[0] * np.cos(yaw_c) + \
             rdd_t[1] * np.sin(yaw_c)) # equivalent to movement in +x direction
 
         # Cap roll (y) and pitch (x) to prevent unstable maneuvers

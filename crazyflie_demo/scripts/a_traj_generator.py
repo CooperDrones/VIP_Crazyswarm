@@ -78,7 +78,7 @@ class StandingWaveGenerator:
 
 def main():
     wave_traj = StandingWaveGenerator()
-    frequency = 1.0
+    frequency = 2.0
     amplitude = 0.25
     no_oscillations = 1.5
     no_drones = 3
