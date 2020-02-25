@@ -4,5 +4,4 @@ import rospy
 
 if __name__ == '__main__':
     cf3 = CooperativeQuad('crazyflie3')
-    cf3.hoverStiff(0.0, 0.0, 0.3, 0.0, 0.1)
-    cf3.land()
+    cf3.hoverStiff(0.0, 0.0, 0.35, 0.0, 0.05, False)

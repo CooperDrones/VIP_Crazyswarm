@@ -12,17 +12,17 @@
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-  <!-- <group ns="crazyflie3">
+  <group ns="crazyflie3">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri3)" />
       <arg name="tf_prefix" value="crazyflie3" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf3.py" output="screen"> 
-      <param name="frame" value="$(arg frame3)" />
+    <node name="controller" pkg="crazyflie_demo" type="a_standing_wave_cf3.py" output="screen"> 
+      <param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S.%N'"/>
     </node>
-  </group> -->
+  </group>
 
   <group ns="crazyflie4">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
@@ -33,24 +33,22 @@
       <arg name="pitch_trim" value="0.1" />
     </include>
 
-    <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf4.py" output="screen"> 
-      <param name="frame" value="$(arg frame4)" />
+    <node name="controller" pkg="crazyflie_demo" type="a_standing_wave_cf4.py" output="screen"> 
+      <param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S.%N'"/>
     </node>
   </group>
 
-  <!-- <group ns="crazyflie5">
+  <group ns="crazyflie5">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri5)" />
       <arg name="tf_prefix" value="crazyflie5" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf5.py" output="screen"> 
-      <param name="frame" value="$(arg frame5)" />
+    <node name="controller" pkg="crazyflie_demo" type="a_standing_wave_cf5.py" output="screen"> 
+      <param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S.%N'"/>
     </node>
-  </group> -->
-
-  <!-- <node name="crazyflie_plot_poses" pkg="crazyflie_demo" type="plot_poses.py" output="screen"> </node> -->
+  </group>
 
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 </launch>

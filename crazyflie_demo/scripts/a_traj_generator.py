@@ -28,16 +28,18 @@ class StandingWaveGenerator:
         t = 0.0 # initialize time
 
         traj = np.array([
-            0.0, # y pos [m]
-            0.0, # y vel [m/s]
-            0.0, # time
+            0.0, # x pos [m]
+            0.0, # x vel [m/s]
+            0.0, # x acc [m/s**2]
+            0.0  # time
         ])
 
         while t < t_end:
-            temp = np.zeros(3,)
+            temp = np.zeros(4,)
             temp[0] = A * np.cos(omega*t)
             temp[1] = A * omega * (-np.sin(omega*t))
-            temp[2] = t
+            temp[2] = A * omega**2 * (-np.cos(omega*t))
+            temp[3] = t
             traj = np.vstack((traj,temp))
             t += self.t_phys
         
@@ -45,8 +47,9 @@ class StandingWaveGenerator:
             num_rows = 2; num_cols = 1
             fig, ax = plt.subplots(num_rows, num_cols)
 
-            ax[0].plot(traj[:,2], traj[:,0], c='r', label='pos') # plot pos vs. time
-            ax[0].plot(traj[:,2], traj[:,1], c='b', label='vel') # plot vel vs. time
+            ax[0].plot(traj[:,3], traj[:,0], c='r', label='pos') # plot pos vs. time
+            ax[0].plot(traj[:,3], traj[:,1], c='b', label='vel') # plot vel vs. time
+            ax[0].plot(traj[:,3], traj[:,2], c='g', label='acc') # plot vel vs. time
             ax[0].set_title('Standing Wave Trajectory')
             ax[0].set_ylabel('position [m] and velocty [m/s]')
             ax[0].set_xlabel('time [s]')
@@ -75,13 +78,12 @@ class StandingWaveGenerator:
 
 def main():
     wave_traj = StandingWaveGenerator()
-    frequency = 0.3
-    amplitude = 0.5
+    frequency = 2.0
+    amplitude = 0.25
     no_oscillations = 1.5
     no_drones = 3
     traj = wave_traj.genWaveTraj(amplitude, frequency, \
-        no_oscillations, no_drones, True)
-    print(traj.shape[0])
+        no_oscillations, no_drones, y_c, True)
 
     plt.show()
 

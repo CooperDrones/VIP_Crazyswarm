@@ -1,14 +1,19 @@
 #!/usr/bin/env python
 import numpy as np
-# import math
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
+import pickle
+from datetime import datetime
+
+import os
+here = os.path.dirname(os.path.abspath(__file__))
 
 # Import crazyflie model modules
 import sys
 sys.path.append("../model/")
 import crazyflie_param as P
 
+plt.ion()
 
 # # Followed this paper, section 3, for all controllers
 # # https://arxiv.org/pdf/1608.05786.pdf
@@ -112,9 +117,10 @@ class XYControllerPhys:
         return phi_c, theta_c
 
 class XYControllerTrajPhys:
-    def __init__(self, kp=20.0, kd=2.0, cap=15.0):
+    def __init__(self, kp=100.0, kd=100.0, k_ff = 10.0, cap=20.0):
         self.kp = kp
-        self.kd = kd
+        self.kd = kd # adding damping
+        self.k_ff = k_ff
         self.cap = cap
 
         self.r_prev = np.array([0.0, 0.0])
@@ -123,6 +129,18 @@ class XYControllerTrajPhys:
 
         self.t_phys = 1 / 30.0
         self.g = 9.80665
+
+        # For plotting
+        self.time_now = 0.0
+        self.time_list = []
+        self.x_list = []
+        self.x_t_list = []
+        self.y_list = []
+        self.y_t_list = []
+        self.xd_list = []
+        self.yd_list = []
+        self.xd_t_list = []
+        self.yd_t_list = []
     
     def normalize(self, a):
         """
@@ -136,7 +154,7 @@ class XYControllerTrajPhys:
         normal = normal / np.linalg.norm(normal)
         return normal
 
-    def update(self, r_t, rd_t, r_t_vect, r, yaw_c):
+    def update(self, r_t, rd_t, r_t_vect, r, yaw_c, rdd_t, is_pickling=False):
         """
         Off-Board trajectory PID controller
 
@@ -147,32 +165,68 @@ class XYControllerTrajPhys:
         r_t_vect = vector from current to next traj point
         r        = actual drone pos
         yaw_c    = yaw setpoint
+        rdd_t    = pre-computed feedforward
+        is_pickling = save out data into 'cf_data' file
 
         Returns
         -------
-        phi_c = total body-frame x position error which maps to commanded pitch angle 
-        theta_c = total body-frame y position error which maps to commanded roll angle
+        phi_c = total x position error which maps to commanded pitch angle 
+        theta_c = total y position error which maps to commanded roll angle
         """
         # Calculate position component
         t_unit = r_t_vect / np.linalg.norm(r_t_vect)
         n_unit = self.normalize(t_unit)
 
-        # print("t_unit is ", t_unit)
-        # print("n_unit is ", n_unit)
+        print("t_unit is ", t_unit)
+        print("n_unit is ", n_unit)
 
+        print("r_t - r is {}".format(r_t - r))
+
+        # only account for cross-track position error
         e_p = np.dot(np.dot((r_t - r), n_unit), n_unit) \
-            + np.dot(np.dot((r_t - r), t_unit), t_unit)
+            # + np.dot(np.dot((r_t - r), t_unit), t_unit)
 
         # Calculate velocity error component
         rd = (r - self.r_prev) / self.t_phys
-        e_v = (rd_t - rd)
+        self.r_prev = r
+
+        # TODO: make some plots to check velocity smoothness
+        # using pickle, tune parameters
+        # let Prof. know if we need a filter derivative
+        print("r is ", r)
+        print("rd is ", rd)
+        e_v = rd_t - rd
+        # e_v = np.dot(np.dot((rd_t - rd), t_unit), t_unit)
+
+        # Save out data if desired
+        if is_pickling:
+            self.time_now += self.t_phys
+            self.time_list.append(self.time_now)
+            self.x_list.append(r[0])
+            self.x_t_list.append(r_t[0])
+
+            self.xd_list.append(rd[0])
+            self.xd_t_list.append(rd_t[0])
+
+            self.y_list.append(r[1])
+            self.y_t_list.append(r_t[1])
+            
+            self.yd_list.append(rd[1])
+            self.yd_t_list.append(rd_t[1])
 
         # Calculate accel vector and convert to desired angular commands
-        rdd_t = self.kp * e_p + self.kd * e_v
+        print("total position component {}".format(self.kp * e_p))
+        print("total velocity component {}".format(self.kd * e_v))
+        print("total accelera component {}".format(rdd_t))
+        
+        rdd_t = self.kp * e_p + self.kd * e_v \
+            # + self.k_ff * rdd_t # optional feedforward component
+        print("total rdd_t {}".format(rdd_t))
+
         theta_c = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
-            rdd_t[1] * np.cos(yaw_c))
+            rdd_t[1] * np.cos(yaw_c)) # equivalent to movement in -y direction
         phi_c   = 1.0/self.g * (rdd_t[0] * np.cos(yaw_c) + \
-            rdd_t[1] * np.sin(yaw_c))
+            rdd_t[1] * np.sin(yaw_c)) # equivalent to movement in +x direction
 
         # Cap roll (y) and pitch (x) to prevent unstable maneuvers
         if np.abs(phi_c) >= self.cap:
@@ -181,6 +235,25 @@ class XYControllerTrajPhys:
             theta_c = np.sign(theta_c) * self.cap
 
         return phi_c, theta_c
+    
+    def pickleData(self):
+        print('Pickling data!')
+        data = np.array([self.time_list,
+            self.x_list,    
+            self.x_t_list,  
+            self.xd_list,
+            self.xd_t_list,
+            self.y_list,    
+            self.y_t_list,  
+            self.yd_list,
+            self.yd_t_list,
+        ])
+
+        with open(os.path.join(here, "cf_data"), 'wb') as outfile:
+            pickle.dump(data, outfile)
+
+        outfile.close()
+        print('Pickling has completed!')
 
 class YawControllerPhys:
     def __init__(self, kp=-20.0):
