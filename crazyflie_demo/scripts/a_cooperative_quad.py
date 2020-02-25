@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 from mpl_toolkits import mplot3d
 import pickle
+from datetime import datetime
+from pytz import timezone
 
 # Import crazyflie model modules
 from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys, YawControllerPhys, XYControllerTrajPhys
@@ -54,7 +56,8 @@ class CooperativeQuad:
             self.pub.publish(self.msg)
             self.rate.sleep()
 
-    def hoverStiff(self, x_c, y_c, z_c, yaw_c, goal_r, is_break=True):
+    def hoverStiff(self, x_c, y_c, z_c, yaw_c, goal_r, is_break=True, \
+        is_synchronized=False, global_sync_time=0.0):
         """
         Hovers the drone to an accurate global setpoint
         Drone will stay at setpoint until other function is called
@@ -75,6 +78,12 @@ class CooperativeQuad:
         xy_ctrl_phys = XYControllerPhys()
         yaw_ctrl_phys = YawControllerPhys()
         # print("after class declarations")
+
+        tz = timezone('EST')
+        now = datetime.now(tz)
+        secs = str(now.second) + '.' + str(now.microsecond)
+        local_now = now.hour * 3600 + now.minute * 60 + float(secs)
+        local_in_loop = local_now
         
         while not rospy.is_shutdown():
             pose_prev = pose
@@ -93,6 +102,9 @@ class CooperativeQuad:
             self.msg.linear.x, self.msg.linear.y = xy_ctrl_phys.update(x_c, x, y_c, y, yaw)
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
+            # update class specifc time in loop
+            local_in_loop += self.t_phys
+
             ### Goal behavior ###
             if is_break:
                 if (x > (x_c - goal_r) and x < (x_c + goal_r)) and \
@@ -100,11 +112,20 @@ class CooperativeQuad:
                     (z > (z_c - goal_r) and z < (z_c + goal_r)):
                     print(self.cf_name + ' found the hover setpoint!')
                     break # include to move to other function
+            
+            # print("global_sync_time is: {}".format(global_sync_time))
+            # print("local_in_loop is: {}".format(local_in_loop))
+            if is_synchronized:
+                time_offset = 0.04
+                if (local_in_loop > (global_sync_time - 0.04) \
+                    and local_in_loop < (global_sync_time + 0.04)):
+                    print(self.cf_name + ' hit the time delay for synchronization!')
+                    break
 
             self.pub.publish(self.msg)
             self.rate.sleep()
 
-    def trajTrackingStandingWave(self, traj, z_c):
+    def trajTrackingStandingWave(self, traj, z_c, y_c=0.0):
         """
         Runs a trajectory tracking algorithm that follows a standing wave
 
@@ -123,14 +144,14 @@ class CooperativeQuad:
         xy_traj_ctrl_phys = XYControllerTrajPhys()
         yaw_ctrl_phys = YawControllerPhys()
         
-        y_c = 0.0; v_c = 0.0; vd_c = 0.0 # keep y values equal to zero for now 
+        y_c = y_c; v_c = 0.0; vd_c = 0.0 # keep y values equal to zero for now 
         yaw_c = 0.0
 
         # Will finish at end of trajectory matrix, 1 entry per loop interation
         for i in range(traj.shape[0] - 1):
-            print('completion stage is {} out of {}'.format(i, traj.shape[0]))
-            print('traj x is {}'.format(traj[i, 0]))
-            print('traj x_vel is {}'.format(traj[i, 1]))
+            # print('completion stage is {} out of {}'.format(i, traj.shape[0]))
+            # print('traj x is {}'.format(traj[i, 0]))
+            # print('traj x_vel is {}'.format(traj[i, 1]))
             pose_prev = pose
             pose = self.pose
             quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
@@ -154,8 +175,8 @@ class CooperativeQuad:
             self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c, rdd_t, True)
             self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
 
-            print('phi   (commands +x) is: ', self.msg.linear.x)
-            print('theta (commands -y) is: ', self.msg.linear.y)
+            # print('phi   (commands +x) is: ', self.msg.linear.x)
+            # print('theta (commands -y) is: ', self.msg.linear.y)
 
             # self.msg.linear.x = 0.0; self.msg.linear.y = 0.0 # set to tune trim values
 

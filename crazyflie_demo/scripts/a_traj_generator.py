@@ -83,7 +83,7 @@ def main():
     no_oscillations = 1.5
     no_drones = 3
     traj = wave_traj.genWaveTraj(amplitude, frequency, \
-        no_oscillations, no_drones, True)
+        no_oscillations, no_drones, y_c, True)
 
     plt.show()
 
