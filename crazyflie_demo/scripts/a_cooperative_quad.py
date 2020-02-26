@@ -105,6 +105,8 @@ class CooperativeQuad:
             # update class specifc time in loop
             local_in_loop += self.t_phys
 
+            # self.msg.linear.x = 0.0; self.msg.linear.y = 0.0 # set to tune trim values
+
             ### Goal behavior ###
             if is_break:
                 if (x > (x_c - goal_r) and x < (x_c + goal_r)) and \
@@ -189,12 +191,12 @@ class CooperativeQuad:
 def main():
     try:
         # Initialize drone control class with arg matching vicon object name
-        cf1 = CooperativeQuad('crazyflie4', True)
+        cf1 = CooperativeQuad('crazyflie3', True)
         cf1.dummyForLoop()
 
         # Hover at z=0.5, works tested 1/27/2020
         goal_r = 0.1
-        cf1.hoverStiff(0.0, 0.0, 0.5, 0.0, goal_r, False) # hover in place
+        cf1.hoverStiff(0.0, 0.0, 0.3, 0.0, goal_r, True) # False means break after reaching set point
 
     except Exception as e:
         print(e)

@@ -17,6 +17,8 @@
       <arg name="uri" value="$(arg uri3)" />
       <arg name="tf_prefix" value="crazyflie3" />
       <arg name="enable_logging" value="False" />
+      <arg name="roll_trim" value="0.1" />
+      <arg name="pitch_trim" value="0.1" />
     </include>
 
     <node name="controller" pkg="crazyflie_demo" type="a_standing_wave_cf3.py" output="screen"> 
@@ -38,17 +40,19 @@
     </node>
   </group>
 
-  <group ns="crazyflie5">
+  <!-- <group ns="crazyflie5">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri5)" />
       <arg name="tf_prefix" value="crazyflie5" />
       <arg name="enable_logging" value="False" />
+      <arg name="roll_trim" value="0.5" />
+      <arg name="pitch_trim" value="-0.8" />
     </include>
 
     <node name="controller" pkg="crazyflie_demo" type="a_standing_wave_cf5.py" output="screen"> 
       <param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S.%N'"/>
     </node>
-  </group>
+  </group> -->
 
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 </launch>
