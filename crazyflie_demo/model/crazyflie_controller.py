@@ -43,7 +43,8 @@ class RateController:
         # used in control mixer
 
 class AttitudeController:
-    def __init__(self, kp_phi=3.5, ki_phi=3.5, kp_theta=3.5, ki_theta=2.0):
+    # TODO: integrator makes unstable
+    def __init__(self, kp_phi=3.5, ki_phi=0.0, kp_theta=3.5, ki_theta=0.0, cap=100.0):
         self.kp_phi = kp_phi     # Roll Attitude Proportional Gain
         self.ki_phi = ki_phi     # Roll Attitude Integral Gain
         self.e_phi_hist = 0.0
@@ -52,15 +53,22 @@ class AttitudeController:
         self.ki_theta = ki_theta # Pitch Attitude Integral Gain
         self.e_theta_hist = 0.0
 
-    def update(self, phi_c, theta_c, state): # phi controls x, theta controls y
+        self.cap = cap
+
+    def update(self, phi_c, theta_c, state): # phi controls neg y, theta controls pos x
         # Calculate errors
         e_phi = phi_c - state.item(5)
         self.e_phi_hist += e_phi
-        p_c = self.kp_phi * (e_phi) + (self.ki_phi * self.e_phi_hist)
+        p_c = (self.kp_phi * e_phi) + (self.ki_phi * self.e_phi_hist)
         
         e_theta = theta_c - state.item(4)
         self.e_theta_hist += e_theta
-        q_c = self.kp_theta * (e_theta) + (self.ki_theta * self.e_theta_hist)
+        q_c = (self.kp_theta * e_theta) + (self.ki_theta * self.e_theta_hist)
+
+        if np.abs(q_c) > self.cap:
+            q_c = self.cap * (np.sign(q_c))
+        if np.abs(p_c) > self.cap:
+            p_c = self.cap * (np.sign(p_c))
    
         return p_c, q_c
         # used in the rate controller
@@ -69,12 +77,14 @@ class ControlMixer:
     def __init__(self):
         self.temp = 0.0
 
+    # pos theta, pos x
+    # pos phi, neg y
     def update(self, omega_cap, del_phi, del_theta, del_psi):
         u_pwm = np.array([
             [omega_cap - del_phi/2 - del_theta/2 - del_psi],
-            [omega_cap + del_phi/2 - del_theta/2 + del_psi],
+            [omega_cap - del_phi/2 + del_theta/2 + del_psi],
             [omega_cap + del_phi/2 + del_theta/2 - del_psi],
-            [omega_cap - del_phi/2 - del_theta/2 + del_psi], 
+            [omega_cap + del_phi/2 - del_theta/2 + del_psi], 
         ])
         return u_pwm
 
@@ -109,7 +119,7 @@ class AltitudeController:
         return del_omega_cap
 
 class XYController:
-    def __init__(self, kp=10.0, ki=2.0, cap=15.0):
+    def __init__(self, kp=20.0, ki=2.0, cap=0.2):
         self.kp = kp
         self.ki = ki
         self.cap = cap
@@ -120,14 +130,15 @@ class XYController:
     
     def update(self, x_c, x, y_c, y, psi, t):
         xe = x_c - x; ye = y_c - y # Get position error
+        print('xe {}\nye {}'.format(xe, ye))
 
         x_b = x * np.cos(psi) + y * np.sin(psi) # Get x in body frame
         u = (x_b - self.x_b_prev) / t # u is x-vel in body frame
-        x_b_prev = x_b # Reset previous val
+        self.x_b_prev = x_b # Reset previous val
 
         y_b = -(x * np.sin(psi)) + y * np.cos(psi) # Get y in body frame
         v = (y_b - self.y_b_prev) / t # v is y-vel in body frame
-        y_b_prev = y_b # Reset previous val
+        self.y_b_prev = y_b # Reset previous val
 
         xe_b = xe * np.cos(psi) + ye * np.sin(psi) # Get errors in body frame
         ye_b = -(xe * np.sin(psi)) + ye * np.cos(psi)
@@ -135,7 +146,7 @@ class XYController:
         self.xe_b_hist += ((xe_b - u) * t) # Accumulate and store histroical error
         self.ye_b_hist += ((ye_b - v) * t)
 
-        phi_c = ((xe_b - u) * self.kp) + (self.xe_b_hist * self.ki) # Eq. 3.1.11 and Eq. 3.1.12
+        phi_c   = ((xe_b - u) * ( self.kp)) + (self.xe_b_hist * ( self.ki)) # Eq. 3.1.11 and Eq. 3.1.12
         theta_c = ((ye_b - v) * (-self.kp)) + (self.ye_b_hist * (-self.ki))
 
         # Cap roll (y) and pitch (x) to prevent unstable maneuvers
@@ -145,7 +156,7 @@ class XYController:
         if np.abs(theta_c) >= self.cap:
             theta_c = np.sign(theta_c) * self.cap
         
-        return phi_c, theta_c
+        return theta_c, phi_c
 
 class YawController:
     def __init__(self, kp=-20.0):
