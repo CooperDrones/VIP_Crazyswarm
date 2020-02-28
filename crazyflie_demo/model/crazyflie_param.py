@@ -44,7 +44,7 @@ t_ob = 1/freq_off_board
 freq_phys = 30.0
 t_phys = 1/freq_phys
 
-t_plot = 0.1  # [s]
+t_plot = 0.05  # [s]
 
 # Prop RPM saturation limits
 rpm_max = 21666.4
