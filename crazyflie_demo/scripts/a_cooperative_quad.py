@@ -29,12 +29,20 @@ class CooperativeQuad:
         self.hz = 30.0
         self.t_phys = 1/self.hz # TODO make P.t_phys import
         self.rate = rospy.Rate(self.hz)
+        
+        # Requried for landing script
+        self.x_fin = 0.0 
+        self.y_fin = 0.0
+        self.z_fin = 0.0
+        self.yaw_fin = 0.0
 
+        # Required based on syntax of launch script
         if is_main:
             self.pub = rospy.Publisher(self.cf_name + "/cmd_vel", Twist, queue_size=10)
         else:
             self.pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
+        # Required for vicon listener
         self.pose = TransformStamped()
         self.pose.transform.rotation.w = 1.0
 
@@ -113,6 +121,8 @@ class CooperativeQuad:
                     (y > (y_c - goal_r) and y < (y_c + goal_r)) and \
                     (z > (z_c - goal_r) and z < (z_c + goal_r)):
                     print(self.cf_name + ' found the hover setpoint!')
+                    # Save out last known location
+                    self.x_fin = x; self.y_fin = y; self.yaw_fin = yaw
                     break # include to move to other function
             
             # print("global_sync_time is: {}".format(global_sync_time))
@@ -129,11 +139,13 @@ class CooperativeQuad:
 
     def trajTrackingStandingWave(self, traj, z_c, y_c=0.0):
         """
-        Runs a trajectory tracking algorithm that follows a standing wave
+        Runs a 2D trajectory tracking algorithm in the XY plane
 
         Parameters
         ----------
         traj = trajectory that increments at each loop iteration
+        z_c  = commanded height value
+        y_c  = commanded y-offset value if traj only operates in x direction
         """
         print(self.cf_name + ' started trajectory tracking!')
 
@@ -191,6 +203,48 @@ class CooperativeQuad:
 
         # Save out data through pickle
         xy_traj_ctrl_phys.pickleData()
+
+    def land(self):
+        """
+        Take last known x and y coordinates from hover script
+        and slowly land the drone while maintaining xy control
+        """
+        print(self.cf_name + ' started landing!')
+
+        rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
+        pose = self.pose
+
+        # Initialize required hover controllers
+        xy_ctrl_phys = XYControllerPhys(cap=5.0)
+        yaw_ctrl_phys = YawControllerPhys()
+
+        x_c = self.x_fin; y_c = self.y_fin; yaw_c = self.yaw_fin
+        self.msg.linear.z = 40000.0
+        
+        while not rospy.is_shutdown():
+            pose_prev = pose
+            pose = self.pose
+            quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
+            x = pose.transform.translation.x; y = pose.transform.translation.y; z = pose.transform.translation.z
+            if math.isnan(pose.transform.translation.x): # handle nans by setting to last known position
+                pose = pose_prev
+
+            # Obtain yaw angle from quaternion
+            R = Rotation.from_quat(quat)
+            x_global = R.apply([1, 0, 0]) # project to world x-axis
+            yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
+
+            self.msg.linear.x, self.msg.linear.y = xy_ctrl_phys.update(x_c, x, y_c, y, yaw)
+            self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
+                
+            if self.msg.linear.z > 35000.0:
+                self.msg.linear.z -= 150.0
+            else:    
+                print(self.cf_name + ' completed landing!')
+                break
+
+            self.pub.publish(self.msg)
+            self.rate.sleep()
 
 def main():
     """

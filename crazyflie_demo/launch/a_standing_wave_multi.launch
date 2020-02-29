@@ -12,7 +12,7 @@
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-  <!-- <group ns="crazyflie3">
+  <group ns="crazyflie3">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri3)" />
       <arg name="tf_prefix" value="crazyflie3" />
@@ -24,7 +24,7 @@
     <node name="controller" pkg="crazyflie_demo" type="a_standing_wave_cf3.py" output="screen"> 
       <param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S.%N'"/>
     </node>
-  </group> -->
+  </group>
 
   <group ns="crazyflie4">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
@@ -40,7 +40,7 @@
     </node>
   </group>
 
-  <!-- <group ns="crazyflie5">
+  <group ns="crazyflie5">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri5)" />
       <arg name="tf_prefix" value="crazyflie5" />
@@ -52,7 +52,7 @@
     <node name="controller" pkg="crazyflie_demo" type="a_standing_wave_cf5.py" output="screen"> 
       <param name="start_time" command="date +'%d-%m-%Y_%Ih%Mm%S.%N'"/>
     </node>
-  </group> -->
+  </group>
 
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>
 </launch>
