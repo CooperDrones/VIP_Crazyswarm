@@ -59,6 +59,79 @@ See [here](https://arxiv.org/pdf/1608.05786.pdf) for detailed crazyflie system m
 There are six packages included: crazyflie_cpp, crazyflie_driver, crazyflie_tools, crazyflie_description, crazyflie_controller, and crazyflie_demo.
 Note that the below description might be slightly out-of-date, as we continue merging the Crazyswarm and crazyflie_ros.
 
+### Crazyflie_demo (Cooper Demos are here!)
+
+This package contains a rich set of examples to get quickly started with the Crazyflie.
+
+#### Single Drone Hover
+
+Description: Runs a hover controller for a single crazyflie at position (0,0,0.3). Uses VICON position feedback for localization. 
+
+Launch: Launch the following file with `crazyflie3` enabled in Vicon Tracker.
+```
+roslaunch crazyflie_demo a_hover_stiff.launch
+```
+Notes: Follows the hover controller described in section 3.1.2 of the following paper https://arxiv.org/pdf/1608.05786.pdf
+
+#### Multi Drone Hover
+
+Description: Runs the hover controller on 
+
+Launch: Launch the following file with `crazyflie3`, `crazyflie4`, and `crazyflie5` enabled in Vicon Tracker.
+```
+roslaunch crazyflie_demo a_hover_stiff_multi.launch
+```
+Notes: Follows the hover controller described in section 3.1.2 of the following thesis: https://arxiv.org/pdf/1608.05786.pdf
+
+#### Single Drone Trajectory Tracking
+
+Description: Runs a trajectory tracking algorithm on a single drone
+
+Launch: Launch the following file with `crazyflie4` enabled in Vicon Tracker
+```
+roslaunch crazyflie_demo a_traj_tracking.launch
+```
+
+Notes: Follows a 2D version of the trajectory tracking controller described in seciton 2.2.2 of the following thesis: https://repository.upenn.edu/cgi/viewcontent.cgi?article=1705&context=edissertations
+
+#### Multi Drone Trajectory Tracking Mimicing Standing Wave Mode 1
+
+Description: Runs three drones following a standing wave pattern. Can run `a_traj_generator.py` in `scripts` folder to see wave creation options
+
+Launch: Launch the following file with `crazyflie3`, `crazyflie4`, and `crazyflie5` enabled in Vicon Tracker
+```
+roslaunch crazyflie_demo a_standing_wave_multi.launch
+```
+
+Notes: Follows the same trajectory tracking algorithm described in demo above
+
+#### Magic Wand Demo
+
+Description: Runs an interactive demo where a swarm of Crazyflie drones track a pencil object, see video: https://www.youtube.com/watch?v=J0sCPa3kySQ. 
+
+Launch: Launch the following file with `pencil`, `crazyflie3`, `crazyflie4`, and `crazyflie5` objects enabled in Vicon Tracker.
+```
+roslaunch crazyflie_demo pencil_tracker.launch
+```
+
+Start each drone in a seperate terminal window by calling the following services
+`rosservice call /crazyflie3/takeoff`
+`rosservice call /crazyflie4/takeoff`
+`rosservice call /crazyflie5/takeoff`
+
+Can also run `emergency` or `land` services to either cut power or conduct a graceful landing maneuver
+
+Notes: Uses the stock cpp controller contained in the Crazyflie_controller directory
+
+### Crazyflie_demo\model
+
+Description: Model of the Crazyflie 2.1 system following dynamics listed in the following paper: https://arxiv.org/pdf/1608.05786.pdf using a Python controller layout described by Randal Beard in the book `Quadrotor Dynamics and Control Rev 0.1`
+
+Launch: Run the following file in the `tests` folder
+```
+python test_controller.py
+```
+
 ### Crazyflie_Cpp
 
 This package contains a cpp library for the Crazyradio and Crazyflie. It can be used independently of ROS.
@@ -84,49 +157,7 @@ This package contains a 3D model of the Crazyflie (1.0). This is for visualizati
 ### Crazyflie_controller
 
 This package contains a simple PID controller for hovering or waypoint navigation.
-It can be used with external motion capture systems, such as VICON.
-
-### Crazyflie_demo
-
-This package contains a rich set of examples to get quickly started with the Crazyflie.
-
-For teleoperation using a joystick, use:
-```
-roslaunch crazyflie_demo teleop_xbox360.launch uri:=radio://0/100/2M
-```
-where the uri specifies the uri of your Crazyflie. You can find valid uris using the scan command in the crazyflie_tools package.
-
-For hovering a single crazyflie (use drone labeled 01) at (0,0,0.5) using VICON, use:
-```
-roslaunch crazyflie_demo hover_vicon.launch uri:=radio://0/35/2M/E7E7E7E701 frame:=vicon/crazyflie1/crazyflie1 x:=0 y:=0 z:=0.5
-```
-where the uri specifies the uri of your Crazyflie and frame the tf-frame. The launch file runs vicon_bridge automatically.
-
-use services to call for takeoff, land and emergency commands
-```
-rosservice call /crazyflie/takeoff
-rosservice call /crazyflie/emergency
-rosservice call /crazyflie/land
-```
-
-For multiple Crazyflies make sure that all Crazyflies have a different address.
-Crazyflies which share a dongle should use the same channel and datarate for best performance.
-The performance degrades with the number of Crazyflies per dongle due to bandwidth limitations, however it was tested successfully to use 3 CFs per Crazyradio.
-
-You can also pass x, y, z position commands from the terminal. Running as is will send to (0,0,0.5) and (0,-0.75,0.5)
-```
-roslaunch crazyflie_demo multi_hover_vicon.launch uri1:=radio://0/35/2M/E7E7E7E701 frame1:=vicon/crazyflie1/crazyflie1 uri2:=radio://0/80/2M/E7E7E7E702 frame2:=vicon/crazyflie2/crazyflie2
-```
-
-Please check the launch files in the crazyflie_demo package for other examples, including simple waypoint navigation.
-
-Sweet demo - run with cf3, cf4, and cf5:
-```
-roslaunch crazyflie_demo pencil_tracker.launch
-```
-`rosservice call /crazyflie3/takeoff`
-`rosservice call /crazyflie4/takeoff`
-`rosservice call /crazyflie5/takeoff`
+It can be used with external motion capture systems, such as VICONhttps://repository.upenn.edu/cgi/viewcontent.cgi?article=1705&context=edissertations.
 
 ## ROS Features
 
