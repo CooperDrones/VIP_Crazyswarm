@@ -34,7 +34,7 @@
     </include>
 
     <node name="controller" pkg="crazyflie_demo" type="a_traj_tracking_cf4.py" output="screen"> 
-      <param name="frame" value="$(arg frame4)" />
+      <!-- <param name="frame" value="$(arg frame4)" /> -->
     </node>
   </group>
 

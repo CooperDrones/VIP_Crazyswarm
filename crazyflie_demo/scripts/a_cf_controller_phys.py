@@ -82,8 +82,8 @@ class XYControllerPhys:
 
         Returns
         -------
-        phi_c = total body-frame x position error which maps to commanded pitch angle 
-        theta_c = total body-frame y position error which maps to commanded roll angle
+        theta_c = commanded pitch angle which results in pos x movement
+        phi_c   = commanded roll angle which results in neg y movement
         """
         xe = x_c - x; ye = y_c - y # Get position error
         # print("class implementation\nxe: {}\nye: {}".format(xe, ye))
@@ -104,7 +104,7 @@ class XYControllerPhys:
         self.xe_b_hist += ((xe_b - u) * self.t_phys2) # Accumulate and store histroical error
         self.ye_b_hist += ((ye_b - v) * self.t_phys2)
 
-        phi_c = ((xe_b - u) * self.kp) + (self.xe_b_hist * self.ki) # Eq. 3.1.11 and Eq. 3.1.12
+        phi_c   = ((xe_b - u) * self.kp) + (self.xe_b_hist * self.ki) # Eq. 3.1.11 and Eq. 3.1.12
         theta_c = ((ye_b - v) * (-self.kp)) + (self.ye_b_hist * (-self.ki))
 
         # Cap roll (y) and pitch (x) to prevent unstable maneuvers
@@ -124,8 +124,6 @@ class XYControllerTrajPhys:
         self.cap = cap
 
         self.r_prev = np.array([0.0, 0.0])
-        # self.xe_b_hist = 0.0
-        # self.ye_b_hist = 0.0
 
         self.t_phys = 1 / 30.0
         self.g = 9.80665
@@ -170,33 +168,26 @@ class XYControllerTrajPhys:
 
         Returns
         -------
-        phi_c = total x position error which maps to commanded pitch angle 
-        theta_c = total y position error which maps to commanded roll angle
+        theta_c = commanded pitch angle which results in pos x movement
+        phi_c   = commanded roll angle which results in neg y movement
         """
-        # Calculate position component
+        # Calculate unit vectors used tabulate components of error
         t_unit = r_t_vect / np.linalg.norm(r_t_vect)
         n_unit = self.normalize(t_unit)
 
-        print("t_unit is ", t_unit)
-        print("n_unit is ", n_unit)
+        # Calculate ONLY cross-track position error
+        # e_p = np.dot(np.dot((r_t - r), n_unit), n_unit) \
+            # + np.dot(np.dot((r_t - r), t_unit), t_unit) # include ff component
 
-        print("r_t - r is {}".format(r_t - r))
+        # TODO: Calculate cross and along track error with seperate gains?
 
-        # only account for cross-track position error
-        e_p = np.dot(np.dot((r_t - r), n_unit), n_unit) \
-            # + np.dot(np.dot((r_t - r), t_unit), t_unit)
+        # Calculate all position error
+        e_p = r_t - r
 
         # Calculate velocity error component
         rd = (r - self.r_prev) / self.t_phys
         self.r_prev = r
-
-        # TODO: make some plots to check velocity smoothness
-        # using pickle, tune parameters
-        # let Prof. know if we need a filter derivative
-        print("r is ", r)
-        print("rd is ", rd)
         e_v = rd_t - rd
-        # e_v = np.dot(np.dot((rd_t - rd), t_unit), t_unit)
 
         # Save out data if desired
         if is_pickling:
@@ -215,13 +206,13 @@ class XYControllerTrajPhys:
             self.yd_t_list.append(rd_t[1])
 
         # Calculate accel vector and convert to desired angular commands
-        print("total position component {}".format(self.kp * e_p))
-        print("total velocity component {}".format(self.kd * e_v))
-        print("total accelera component {}".format(rdd_t))
+        # print("total position component {}".format(self.kp * e_p))
+        # print("total velocity component {}".format(self.kd * e_v))
+        # print("total accelera component {}".format(rdd_t))
         
         rdd_t = self.kp * e_p + self.kd * e_v \
             # + self.k_ff * rdd_t # optional feedforward component
-        print("total rdd_t {}".format(rdd_t))
+        # print("total rdd_t {}".format(rdd_t))
 
         theta_c = 1.0/self.g * (rdd_t[0] * np.sin(yaw_c) - \
             rdd_t[1] * np.cos(yaw_c)) # equivalent to movement in -y direction
@@ -237,6 +228,10 @@ class XYControllerTrajPhys:
         return phi_c, theta_c
     
     def pickleData(self):
+        """
+        Save out lists of data that record position and velocty data
+        of previous trial
+        """
         print('Pickling data!')
         data = np.array([self.time_list,
             self.x_list,    
