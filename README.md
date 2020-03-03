@@ -48,7 +48,7 @@ git clone https://github.com/ethz-asl/vicon_bridge.git
 
 Use `catkin_make` on your workspace to compile.
 
-Navigate to `~/crazyflie_ws/src/vicon_bridge/launch` and set hostport address to `199.98.21.246:801` in the `vicon.launch` file
+Navigate to `~/crazyflie_ws/src/vicon_bridge/launch` and set hostport address to `199.98.17.181:801` in the `vicon.launch` file
 
 See [here](https://wiki.bitcraze.io/doc:crazyflie:dev:fimware:sensor_to_control) for a block diagram of the low-level crazyflie controller
 
