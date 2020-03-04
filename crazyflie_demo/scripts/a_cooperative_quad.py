@@ -75,6 +75,11 @@ class CooperativeQuad:
         ----------
         x_c, y_c, z_c, yaw_c = reference setpoints
         goal_r = bounding radius for when drone is "close enough" to commanded setpoint
+        is_break = will the loop break upon finding the setpoint or hover
+            indefinitely
+        is_synchornized = incorporate a universal time delay such that drones
+            all start trajectory tracking at the same time
+        global_sync_time = length of time delay for synchronization efforts
         """
         print(self.cf_name + ' started hover controller')
 
@@ -193,6 +198,69 @@ class CooperativeQuad:
                 # print('phi   (commands -y) is: ', self.msg.linear.y)
 
                 # self.msg.linear.x = 0.0; self.msg.linear.y = 0.0 # set to tune trim values
+
+                self.pub.publish(self.msg)
+                self.rate.sleep()
+        except KeyboardInterrupt:
+            print('An keyboard interrupt was issued')
+
+        print(self.cf_name + ' completed trajectory tracking!')
+
+        # Save out data through pickle
+        xy_traj_ctrl_phys.pickleData()
+
+    def trajTracking(self, traj, z_c):
+        """
+        Runs a 2D-3D trajectory tracking algorithm
+
+        Parameters
+        ----------
+        traj = trajectory that increments at each loop iteration in form
+        [ x, y, z, xd, yd, zd, xdd, ydd, zdd ]
+        """
+        print(self.cf_name + ' started trajectory tracking!')
+
+        rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
+        pose = self.pose
+
+        # Initialize required controllers
+        altitude_ctrl_phys = AltitudeControllerPhys()
+        xy_traj_ctrl_phys = XYControllerTrajPhys()
+        yaw_ctrl_phys = YawControllerPhys()
+
+        yaw_c = 0.0
+
+        # Will finish at end of trajectory matrix, 1 entry per loop interation
+        try:
+            for i in range(traj.shape[0] - 1):
+                # print('completion stage is {} out of {}'.format(i, traj.shape[0]))
+                # print('traj x is {}'.format(traj[i, 0]))
+                # print('traj x_vel is {}'.format(traj[i, 1]))
+                pose_prev = pose
+                pose = self.pose
+                quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
+                x = pose.transform.translation.x; y = pose.transform.translation.y; z = pose.transform.translation.z
+                if math.isnan(pose.transform.translation.x): # handle nans by setting to last known position
+                    pose = pose_prev
+            
+                # Obtain yaw angle from quaternion
+                R = Rotation.from_quat(quat)
+                x_global = R.apply([1, 0, 0]) # project to world x-axis
+                yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
+
+                # TODO: make flexible with y values
+                r_t      = np.array([traj[i, 0], traj[i, 3]]) # traj pos values
+                r_t_vect = np.array([traj[i+1, 0], traj[i+1, 3]]) - r_t # vector from current pos to next pos in traj
+                rd_t     = np.array([traj[i, 1], traj[i, 4]]) # traj vel values
+                rdd_t    = np.array([traj[i, 2], traj[i, 5]])
+                r        = np.array([x, y]) # actual drone pos
+
+                self.msg.linear.z = altitude_ctrl_phys.update(z_c, z)
+                self.msg.linear.x, self.msg.linear.y = xy_traj_ctrl_phys.update(r_t, rd_t, r_t_vect, r, yaw_c, rdd_t, True)
+                self.msg.angular.z = yaw_ctrl_phys.update(yaw_c, yaw)
+
+                # print('theta (commands +x) is: ', self.msg.linear.x)
+                # print('phi   (commands -y) is: ', self.msg.linear.y)
 
                 self.pub.publish(self.msg)
                 self.rate.sleep()

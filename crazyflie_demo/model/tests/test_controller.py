@@ -216,11 +216,11 @@ def test_xy(x_c, y_c, z_c, psi_c):
 
     # Create class objects
     rate_ctrl = RateController()
-    attitude_ctrl = AttitudeController()
+    attitude_ctrl = AttitudeController(kp=100.0, ki=2.0, kd=10.0)
     rate_ctrl = RateController()
     ctrl_mixer = ControlMixer()
     altitiude_ctrl = AltitudeController()
-    xy_ctrl = XYController()
+    xy_ctrl = XYController(cap=0.2)
     yaw_ctrl = YawController()
 
     # off-borad controller input values
@@ -237,8 +237,6 @@ def test_xy(x_c, y_c, z_c, psi_c):
         [y_c], # y                 - 1
         [z_c], # z                 - 2
         [psi_c], # psi             - 3
-        # [0.0],
-        # [0.0],
     ]) 
 
     t = P.t_start
@@ -269,6 +267,7 @@ def test_xy(x_c, y_c, z_c, psi_c):
                 p_c, q_c = attitude_ctrl.update(u_ob.item(0), u_ob.item(1), cf.state)
 
                 while t < t_next_att: # rate controller is the fastest running at 500 hz
+                    t = t + P.t_rate
 
                     # Conduct rate control
                     del_phi, del_theta, del_psi = rate_ctrl.update(p_c, q_c, u_ob.item(2), cf.state)
@@ -276,7 +275,80 @@ def test_xy(x_c, y_c, z_c, psi_c):
                     # Update state of model
                     u = ctrl_mixer.update(u_ob.item(3), del_phi, del_theta, del_psi)
                     y = cf.update(u)
+
+        plot.update(t, r, cf.state, u)
+        plt.pause(0.01)
+    
+    print('Press key to close')
+    plt.waitforbuttonpress()
+    plt.close()
+
+def test_all(x_c, y_c, z_c, psi_c):
+    cf = CrazyflieDynamics()
+    plot = DataPlotter()
+
+    # Create class objects
+    rate_ctrl = RateController()
+    attitude_ctrl = AttitudeController()
+    rate_ctrl = RateController()
+    ctrl_mixer = ControlMixer()
+    altitiude_ctrl = AltitudeController()
+    xy_ctrl = XYController()
+    yaw_ctrl = YawController()
+
+    # off-borad controller input values
+    u_ob = np.array([
+        [0.0], # pitch (phi -> x)  - 0
+        [0.0], # roll (theta -> y) - 1
+        [0.0], # yaw rate          - 2
+        [0.0], # thrust            - 3
+    ])
+
+    # reference values
+    r = np.array([
+        [x_c], # x                 - 0
+        [y_c], # y                 - 1
+        [z_c], # z                 - 2
+        [psi_c], # psi             - 3
+    ]) 
+
+    t = P.t_start
+
+    while t < P.t_end: # plotter can run the slowest
+        t_next_plot = t + P.t_plot
+        
+        while t < t_next_plot: # offboard controller is slowest at 100 hz
+            t_next_ob = t + P.t_ob
+            
+            # Altitude off-board controller update
+            u_ob[3,0] = altitiude_ctrl.update(r.item(2), cf.state.item(2))
+
+            # XY off-borad controller update
+            # phi_c  , theta_c                    x_c      , x
+            u_ob[0,0], u_ob[1,0] = xy_ctrl.update(r.item(0), cf.state.item(0), \
+                # y_c    , y
+                r.item(1), cf.state.item(1), \
+                0.0, # Yaw
+                # cf.state.item(3), \ # Should use yaw from state of cf
+                P.t_ob)
+
+            while t < t_next_ob: # attitude controller runs at 250 hz
+                t_next_att = t + P.t_att
+
+                # Conduct attitude control
+                # phi controls x, theta controls y
+                p_c, q_c = attitude_ctrl.update(u_ob.item(0), u_ob.item(1), cf.state)
+
+                while t < t_next_att: # rate controller is the fastest running at 500 hz
                     t = t + P.t_rate
+
+                    # Conduct rate control
+                    del_phi, del_theta, del_psi = rate_ctrl.update(p_c, q_c, u_ob.item(2), cf.state)
+                    
+                    # Update state of model
+                    u = ctrl_mixer.update(u_ob.item(3), del_phi, del_theta, del_psi)
+                    y = cf.update(u)
+                    
 
         plot.update(t, r, cf.state, u)
         plt.pause(0.01)
@@ -288,12 +360,14 @@ def test_xy(x_c, y_c, z_c, psi_c):
 if __name__ == "__main__":
     # test_altitude(0.5) # works! 2/16/2020
 
-    # Fly to x reference value
-    test_xy(10.0, 10.0, 0.0, 0.0)
-
     # test_ctrl_mixer()
     # test_rate_ctrl()
 
     # assuming in radians now only valid at .1396 rad = 8 deg
     # phi_c = 0.0; theta_c = 0.1396 # rads or deg?
     # test_attitude_ctrl(phi_c, theta_c)
+
+    # Fly to x reference value
+    test_xy(1.0, 1.0, 0.0, 0.0) # Works! 3/2/2020
+
+    # test_all(1.0, 1.0, 0.0, 0.0)

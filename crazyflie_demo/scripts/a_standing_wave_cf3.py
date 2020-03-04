@@ -11,8 +11,8 @@ if __name__ == '__main__':
     # Generate trajectory
     wave_traj = StandingWaveGenerator()
     frequency = 2.0 # lower is slower
-    amplitude = 0.5
-    no_oscillations = 4.5
+    amplitude = 1.0
+    no_oscillations = 3
     no_drones = 3
     traj = wave_traj.genWaveTraj(amplitude, frequency, \
         no_oscillations, no_drones)
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # Handle discrepancy between military and AM/PM time
     tz = timezone('EST')
     now = datetime.now(tz)
-    start_time = rospy.get_param("/crazyflie4/controller/start_time")
+    start_time = rospy.get_param("/crazyflie3/controller/start_time")
     if now.hour > 12:
         global_start = 3600*(float(start_time[11:13]) + 12) + \
             60*float(start_time[14:16]) + float(start_time[17:])
