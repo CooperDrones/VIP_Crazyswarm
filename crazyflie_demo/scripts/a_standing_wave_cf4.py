@@ -12,7 +12,7 @@ if __name__ == '__main__':
     wave_traj = StandingWaveGenerator()
     frequency = 2.0 # lower is slower
     amplitude = 1.0
-    no_oscillations = 4.5
+    no_oscillations = 3
     no_drones = 3
     traj = wave_traj.genWaveTraj(amplitude, frequency, \
         no_oscillations, no_drones)
@@ -32,8 +32,10 @@ if __name__ == '__main__':
 
     # Drone instructions
     z_c = 0.4 # height setpoint
+    y_c = 0.0
+    yaw_c = 0.0
     cf4 = CooperativeQuad('crazyflie4')
-    cf4.hoverStiff(amplitude, 0.0, z_c, 0.0, 0.05, False,
+    cf4.hoverStiff(amplitude, y_c, z_c, yaw_c, 0.05, False,
         True, global_sync_time)
     cf4.trajTrackingStandingWave(traj, z_c)
     cf4.hoverStiff(-amplitude, 0.0, z_c, 0.0, 0.1)

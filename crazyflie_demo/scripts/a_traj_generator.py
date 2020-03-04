@@ -76,16 +76,90 @@ class StandingWaveGenerator:
 
         return traj
 
-def main():
+class SignalGenerator:
+    def __init__(self, hz=30.0):
+        self.hz = hz
+        self.t_phys = 1/self.hz
+    
+    def genCircleTraj(self, x_c, y_c, z_c, r, omega, no_osc, phase_shift, show_plots=False):
+        """
+        Generate a circular trajectory with form
+        [ x, xd, xdd, y, yd, ydd, z, zd, zdd ]
+
+        Parameters:
+        -----------
+        x_c, y_c, z_c = starting points of hover controller
+        r      = radius of circle for trajectory
+        omega  = speed of tracking through circle
+        no_osc = number of loops
+        """
+
+        T = (2.0 * np.pi)/omega # Period
+        t_end = no_osc * T # simulation run time
+        print(t_end)
+
+        t = 0.0
+        time_list = []
+
+        no_steps = int(t_end/self.t_phys)
+        print(no_steps)
+
+        traj = np.zeros((no_steps, 9))
+
+        for idx in range(no_steps):
+            x   = r * np.cos(omega * t)
+            xd  = r * omega * -np.sin(omega * t) 
+            xdd = r * omega**2 * -np.cos(omega * t)
+            y   = r * np.sin(omega * t)
+            yd  = r * omega * np.cos(omega * t) 
+            ydd = r * omega**2 * -np.sin(omega * t)
+            traj[idx] = np.array([x, xd, xdd, y, yd, ydd, 0.0, 0.0, 0.0])
+            time_list.append(t)
+            t += self.t_phys
+
+        # print(traj)
+
+        if show_plots:
+            num_rows = 2; num_cols = 1
+            fig, ax = plt.subplots(num_rows, num_cols, figsize=(6,12))
+
+            ax[0].plot(traj[:,0], traj[:,3], c='r', label='pos')
+            ax[0].scatter(x_c, y_c, marker='x', s=200)
+            # ax[0].plot(traj[:,3], traj[:,1], c='b', label='vel')
+            ax[0].set_title('Circle Trajectory')
+            ax[0].set_ylabel('y-pos [m]')
+            ax[0].set_xlabel('x-pos [m]')
+
+            ax[1].plot(time_list, traj[:,0], c='r', label='pos')
+            ax[1].plot(time_list, traj[:,1], c='b', label='vel')
+            ax[1].plot(time_list, traj[:,2], c='g', label='acc')
+            ax[1].legend()
+
+        return traj
+
+def plotWaveTraj():
     wave_traj = StandingWaveGenerator()
     frequency = 2.0
     amplitude = 0.25
     no_oscillations = 1.5
     no_drones = 3
+    y_c = 0.0
     traj = wave_traj.genWaveTraj(amplitude, frequency, \
-        no_oscillations, no_drones, y_c, True)
+        no_oscillations, no_drones, True)
+    plt.show()
 
+def plotCircleTraj():
+    circle_traj = SignalGenerator()
+    x_c = 0.5; y_c = 0.0; z_c = 0.4
+    radius = 0.5
+    omega = 1.0
+    no_osc = 2.0
+    phase_shift = 0.0
+    traj = circle_traj.genCircleTraj(x_c, y_c, z_c, radius, \
+        omega, no_osc, phase_shift, True)
     plt.show()
 
 if __name__ == "__main__":
-    main()
+    # plotWaveTraj()
+
+    plotCircleTraj()

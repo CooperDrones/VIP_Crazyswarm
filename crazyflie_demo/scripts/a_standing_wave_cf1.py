@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # Handle discrepancy between military and AM/PM time
     tz = timezone('EST')
     now = datetime.now(tz)
-    start_time = rospy.get_param("/crazyflie5/controller/start_time")
+    start_time = rospy.get_param("/crazyflie1/controller/start_time")
     if now.hour > 12:
         global_start = 3600*(float(start_time[11:13]) + 12) + \
             60*float(start_time[14:16]) + float(start_time[17:])
@@ -32,11 +32,11 @@ if __name__ == '__main__':
 
     # Drone instructions
     z_c = 0.4 # height setpoint
-    y_c = 0.5 # x offset in wave
+    y_c = -1.0 # x offset in wave
     yaw_c = 0.0 # should be same for this particular demo
-    cf5 = CooperativeQuad('crazyflie5')
-    cf5.hoverStiff(amplitude, y_c, z_c, yaw_c, 0.05, False,
+    cf3 = CooperativeQuad('crazyflie1')
+    cf3.hoverStiff(amplitude, y_c, z_c, yaw_c, 0.05, False,
         True, global_sync_time)
-    cf5.trajTrackingStandingWave(traj, z_c, y_c)
-    cf5.hoverStiff(-amplitude, y_c, z_c, yaw_c, 0.05)
-    cf5.land()
+    cf3.trajTrackingStandingWave(traj, z_c, y_c)
+    cf3.hoverStiff(-amplitude, y_c, z_c, yaw_c, 0.05)
+    cf3.land()

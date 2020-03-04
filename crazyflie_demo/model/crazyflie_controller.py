@@ -44,25 +44,35 @@ class RateController:
 
 class AttitudeController:
     # TODO: integrator makes unstable
-    def __init__(self, kp_phi=3.5, ki_phi=0.0, kp_theta=3.5, ki_theta=0.0, cap=100.0):
-        self.kp_phi = kp_phi     # Roll Attitude Proportional Gain
-        self.ki_phi = ki_phi     # Roll Attitude Integral Gain
+    def __init__(self, kp=10.0, ki=0.0, kd=0.0, cap=100.0):
+        self.kp_phi = kp      # Roll Attitude Proportional Gain
+        self.ki_phi = ki      # Roll Attitude Integral Gain
+        self.kd_phi = kd
         self.e_phi_hist = 0.0
+        self.e_phi_prev = 0.0
         
-        self.kp_theta = kp_theta # Pitch Attitude Proportional Gain
-        self.ki_theta = ki_theta # Pitch Attitude Integral Gain
+        self.kp_theta = kp    # Pitch Attitude Proportional Gain
+        self.ki_theta = ki    # Pitch Attitude Integral Gain
+        self.kd_theta = kd
         self.e_theta_hist = 0.0
+        self.e_theta_prev = 0.0
+
+        self.t_phys = 1/30.0
 
         self.cap = cap
 
     def update(self, phi_c, theta_c, state): # phi controls neg y, theta controls pos x
         # Calculate errors
         e_phi = phi_c - state.item(5)
-        self.e_phi_hist += e_phi
-        p_c = (self.kp_phi * e_phi) + (self.ki_phi * self.e_phi_hist)
+        self.e_phi_hist += (e_phi * self.t_phys)
+        e_phi_der = (e_phi - self.e_phi_prev) / self.t_phys
+        self.e_phi_prev = e_phi
+
+        p_c = (self.kp_phi * e_phi) + (self.ki_phi * self.e_phi_hist) +\
+            (self.kd_phi * e_phi_der)
         
         e_theta = theta_c - state.item(4)
-        self.e_theta_hist += e_theta
+        self.e_theta_hist += (e_theta * self.t_phys)
         q_c = (self.kp_theta * e_theta) + (self.ki_theta * self.e_theta_hist)
 
         if np.abs(q_c) > self.cap:
@@ -130,7 +140,7 @@ class XYController:
     
     def update(self, x_c, x, y_c, y, psi, t):
         xe = x_c - x; ye = y_c - y # Get position error
-        print('xe {}\nye {}'.format(xe, ye))
+        # print('xe {}\nye {}'.format(xe, ye))
 
         x_b = x * np.cos(psi) + y * np.sin(psi) # Get x in body frame
         u = (x_b - self.x_b_prev) / t # u is x-vel in body frame
