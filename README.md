@@ -61,55 +61,65 @@ Note that the below description might be slightly out-of-date, as we continue me
 
 ### Crazyflie_demo (Cooper Demos are here!)
 
-This package contains a rich set of examples to get quickly started with the Crazyflie.
+This package contains a rich set of examples to get quickly started with the Crazyflie. The general structure is as follows:
+
+**1 - Launch**: Launches the controller node which publishes `cmd_vel` messages to the crazyflie through use of various off-board controllers. A unique Crazyflie ROS namespace is generated depending on the number of Drones that are desired for the particular demo. 
+
+**2 - Individual Crazyflie Instruction Script**: A unique Python file is called by the Launch file, one for each Crazyflie. This file instantiates the `CooperativeQuad` class which instructs the high level maneuvers that are desired for the particular Crazyflie flight.
+
+**3 - `a_cooperative_quad.py`**: Contains the `CooperativeQuad` class which holds parameters relevant to each individual Crazyflie and instructions for flight maneuvers such as hovering, trajectory  tracking, and landing.
+
+**4 - `a_cf_controller_phys.py`**: Contains the control algorithms that are used in the flight maneuvers.
+
+
 
 #### Single Drone Hover
 
-Description: Runs a hover controller for a single crazyflie at position (0,0,0.3). Uses VICON position feedback for localization. 
+**Description**: Runs a hover controller for a single crazyflie at position (0,0,0.3). Uses VICON position feedback for localization. 
 
-Launch: Launch the following file with `crazyflie3` enabled in Vicon Tracker.
+**Launch**: Launch the following file with `crazyflie3` enabled in Vicon Tracker.
 ```
 roslaunch crazyflie_demo a_hover_stiff.launch
 ```
-Notes: Follows the hover controller described in section 3.1.2 of the following paper https://arxiv.org/pdf/1608.05786.pdf
+**Notes**: Follows the hover controller described in section 3.1.2 of the following thesis: https://arxiv.org/pdf/1608.05786.pdf
 
 #### Multi Drone Hover
 
-Description: Runs the hover controller on 
+**Description**: Runs the hover controller on three drones
 
-Launch: Launch the following file with `crazyflie3`, `crazyflie4`, and `crazyflie5` enabled in Vicon Tracker.
+**Launch**: Launch the following file with `crazyflie3`, `crazyflie4`, and `crazyflie5` enabled in Vicon Tracker.
 ```
 roslaunch crazyflie_demo a_hover_stiff_multi.launch
 ```
-Notes: Follows the hover controller described in section 3.1.2 of the following thesis: https://arxiv.org/pdf/1608.05786.pdf
+**Notes**: Follows the hover controller described in section 3.1.2 of the following thesis: https://arxiv.org/pdf/1608.05786.pdf
 
 #### Single Drone Trajectory Tracking
 
-Description: Runs a trajectory tracking algorithm on a single drone
+**Description**: Runs a trajectory tracking algorithm on a single drone
 
-Launch: Launch the following file with `crazyflie4` enabled in Vicon Tracker
+**Launch**: Launch the following file with `crazyflie4` enabled in Vicon Tracker
 ```
 roslaunch crazyflie_demo a_traj_tracking.launch
 ```
 
-Notes: Follows a 2D version of the trajectory tracking controller described in seciton 2.2.2 of the following thesis: https://repository.upenn.edu/cgi/viewcontent.cgi?article=1705&context=edissertations
+**Notes**: Follows a 2D version of the trajectory tracking controller described in seciton 2.2.2 of the following thesis: https://repository.upenn.edu/cgi/viewcontent.cgi?article=1705&context=edissertations
 
 #### Multi Drone Trajectory Tracking Mimicing Standing Wave Mode 1
 
-Description: Runs three drones following a standing wave pattern. Can run `a_traj_generator.py` in `scripts` folder to see wave creation options
+**Description**: Runs three drones following a standing wave pattern. Can run `a_traj_generator.py` in `scripts` folder to see wave creation options
 
-Launch: Launch the following file with `crazyflie3`, `crazyflie4`, and `crazyflie5` enabled in Vicon Tracker
+**Launch**: Launch the following file with `crazyflie3`, `crazyflie4`, and `crazyflie5` enabled in Vicon Tracker
 ```
 roslaunch crazyflie_demo a_standing_wave_multi.launch
 ```
 
-Notes: Follows the same trajectory tracking algorithm described in demo above
+**Notes**: Follows the same trajectory tracking algorithm described in demo above
 
 #### Magic Wand Demo
 
-Description: Runs an interactive demo where a swarm of Crazyflie drones track a pencil object, see video: https://www.youtube.com/watch?v=J0sCPa3kySQ. 
+**Description**: Runs an interactive demo where a swarm of Crazyflie drones track a pencil object, see video: https://www.youtube.com/watch?v=J0sCPa3kySQ. 
 
-Launch: Launch the following file with `pencil`, `crazyflie3`, `crazyflie4`, and `crazyflie5` objects enabled in Vicon Tracker.
+**Launch**: Launch the following file with `pencil`, `crazyflie3`, `crazyflie4`, and `crazyflie5` objects enabled in Vicon Tracker.
 ```
 roslaunch crazyflie_demo pencil_tracker.launch
 ```
@@ -121,13 +131,13 @@ Start each drone in a seperate terminal window by calling the following services
 
 Can also run `emergency` or `land` services to either cut power or conduct a graceful landing maneuver
 
-Notes: Uses the stock cpp controller contained in the Crazyflie_controller directory
+**Notes**: Uses the stock cpp controller contained in the Crazyflie_controller directory
 
 ### Crazyflie_demo\model
 
-Description: Model of the Crazyflie 2.1 system following dynamics listed in the following paper: https://arxiv.org/pdf/1608.05786.pdf using a Python controller layout described by Randal Beard in the book `Quadrotor Dynamics and Control Rev 0.1`
+**Description**: Model of the Crazyflie 2.1 system following dynamics listed in the following paper: https://arxiv.org/pdf/1608.05786.pdf using a Python controller layout described by Randal Beard in the book `Quadrotor Dynamics and Control Rev 0.1`
 
-Launch: Run the following file in the `tests` folder
+**Launch**: Run the following file in the `tests` folder
 ```
 python test_controller.py
 ```
