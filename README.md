@@ -61,7 +61,15 @@ Note that the below description might be slightly out-of-date, as we continue me
 
 ### Crazyflie_demo (Cooper Demos are here!)
 
-This package contains a rich set of examples to get quickly started with the Crazyflie.
+This package contains a rich set of examples to get quickly started with the Crazyflie. The general structure is as follows:
+
+Launch: Launches the controller node which publishes `cmd_vel` messages to the crazyflie through use of various off-board controllers. A unique Crazyflie ROS namespace is generated depending on the number of Drones that are desired for the particular demo. 
+
+Drone Instruction Script: A unique Python file is called by the Launch file, one for each Crazyflie. This file instantiates the `CooperativeQuad` class which instructs the high level maneuvers that are desired for the particular Crazyflie flight.
+
+`a_cooperative_quad.py`: Contains the `CooperativeQuad` class which holds parameters relevant to each individual Crazyflie and instructions for flight maneuvers such as hovering, trajectory  tracking, and landing.
+
+`a_cf_controller_phys.py`: Contains the control algorithms that are used in the flight maneuvers.
 
 #### Single Drone Hover
 
@@ -71,7 +79,7 @@ Launch: Launch the following file with `crazyflie3` enabled in Vicon Tracker.
 ```
 roslaunch crazyflie_demo a_hover_stiff.launch
 ```
-Notes: Follows the hover controller described in section 3.1.2 of the following paper https://arxiv.org/pdf/1608.05786.pdf
+Notes: Follows the hover controller described in section 3.1.2 of the following thesis: https://arxiv.org/pdf/1608.05786.pdf
 
 #### Multi Drone Hover
 
