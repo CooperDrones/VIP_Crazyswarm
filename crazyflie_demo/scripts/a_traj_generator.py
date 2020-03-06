@@ -76,7 +76,7 @@ class StandingWaveGenerator:
 
         return traj
 
-class SignalGenerator:
+class TrajGenerator:
     def __init__(self, hz=30.0):
         self.hz = hz
         self.t_phys = 1/self.hz
@@ -149,7 +149,7 @@ def plotWaveTraj():
     plt.show()
 
 def plotCircleTraj():
-    circle_traj = SignalGenerator()
+    circle_traj = TrajGenerator()
     x_c = 0.5; y_c = 0.0; z_c = 0.4
     radius = 0.5
     omega = 1.0

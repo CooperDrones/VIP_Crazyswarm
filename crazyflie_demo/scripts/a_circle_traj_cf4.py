@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from a_cooperative_quad import CooperativeQuad
-from a_traj_generator import StandingWaveGenerator, SignalGenerator
+from a_traj_generator import StandingWaveGenerator, TrajGenerator
 import rospy
 import time
 import matplotlib.pyplot as plt
@@ -15,15 +15,15 @@ if __name__ == '__main__':
     yaw_c = 0.0
     cf4 = CooperativeQuad('crazyflie4')
     
-    circle_traj = SignalGenerator()
+    traj = TrajGenerator()
     radius = 0.5
     omega = 2.0
     no_osc = 2.0
     phase_shift = 0.0
-    traj = circle_traj.genCircleTraj(x_c, y_c, z_c, radius, \
+    circle_traj = traj.genCircleTraj(x_c, y_c, z_c, radius, \
         omega, no_osc, phase_shift)
     
     cf4.hoverStiff(x_c, y_c, z_c, yaw_c, 0.05)
-    cf4.trajTracking(traj, z_c)
+    cf4.trajTracking(circle_traj, z_c)
     cf4.hoverStiff(x_c, y_c, z_c, yaw_c, 0.1)
     cf4.land()

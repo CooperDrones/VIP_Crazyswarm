@@ -18,7 +18,7 @@ import crazyflie_param as P
 
 # Import ros specifc modules
 import rospy
-from geometry_msgs.msg import Twist, Vector3, TransformStamped # twist used in cmd_vel
+from geometry_msgs.msg import Twist, Vector3, TransformStamped, PoseStamped # twist used in cmd_vel
 from vicon_bridge.srv import viconGrabPose
 
 class CooperativeQuad:
@@ -46,6 +46,9 @@ class CooperativeQuad:
         self.pose = TransformStamped()
         self.pose.transform.rotation.w = 1.0
 
+        # Requied for publishPostion function
+        self.pubPos = rospy.Publisher('cf_pos', PoseStamped, queue_size=1)
+
     def callback(self, pose):
         self.pose = pose
     
@@ -53,6 +56,13 @@ class CooperativeQuad:
         rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
         pose = self.pose
         rospy.spin()
+    
+    # def callbackRef(self, pose):
+    #     self.pos_ref = pose
+
+    # def listener_ref(self, ref_object):
+    #     rospy.Subscriber("/vicon/" + ref_object + "/" + ref_object, TransformStamped, self.callbackRef)
+    #     pose_ref
 
     def dummyForLoop(self):
         """
@@ -63,6 +73,12 @@ class CooperativeQuad:
         for _ in range(100):
             self.pub.publish(self.msg)
             self.rate.sleep()
+    
+    # def publishPosition(self):
+    #     # Start the vicon listener
+    #     rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
+    #     pose = self.pose
+
 
     def hoverStiff(self, x_c, y_c, z_c, yaw_c, goal_r, is_break=True, \
         is_synchronized=False, global_sync_time=0.0):
@@ -217,11 +233,14 @@ class CooperativeQuad:
         ----------
         traj = trajectory that increments at each loop iteration in form
         [ x, y, z, xd, yd, zd, xdd, ydd, zdd ]
+        ref_object = where position readings are referenced, default is the world origin
         """
         print(self.cf_name + ' started trajectory tracking!')
 
         rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
         pose = self.pose
+
+        rospy.Subscriber("/vicon/" + self.cf_name + "/" + self.cf_name, TransformStamped, self.callback)
 
         # Initialize required controllers
         altitude_ctrl_phys = AltitudeControllerPhys()
