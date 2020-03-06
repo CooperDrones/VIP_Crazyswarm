@@ -65,11 +65,15 @@ This package contains a rich set of examples to get quickly started with the Cra
 
 **1 - Launch**: Launches the controller node which publishes `cmd_vel` messages to the crazyflie through use of various off-board controllers. A unique Crazyflie ROS namespace is generated depending on the number of Drones that are desired for the particular demo. 
 
-**2 - Individual Crazyflie Scripts**: A unique Python file is called by the Launch file, one for each Crazyflie. This file instantiates the `CooperativeQuad` class which instructs the high level maneuvers that are desired for the particular Crazyflie flight.
+**2 - Crazyflie Script**: A unique Python file is called by the Launch file, one for each Crazyflie. This file instantiates the `CooperativeQuad` class which instructs the high level maneuvers that are desired for the particular Crazyflie flight.
 
-**3 - `a_cooperative_quad.py`**: Contains the `CooperativeQuad` class which holds parameters relevant to each individual Crazyflie and instructions for flight maneuvers such as hovering, trajectory  tracking, and landing.
+**3a - Maneuvers**: The Crazyflie script calls maneuvers which are contained in `a_cooperative_quad.py` which contains the `CooperativeQuad` class. This class holds parameters relevant to each individual Crazyflie and instructions for flight maneuvers such as hovering, trajectory  tracking, and landing.
 
-**4 - `a_cf_controller_phys.py`**: Contains the control algorithms that are used in the flight maneuvers.
+**4a - Controllers** The `CooperativeQuad` class calls controller classes located in `a_cf_controller_phys.py`. These classes produce the controller commands that are used in the flight maneuvers.
+
+**3b - Trajectories** The Crazflie script calls a trajectory generation algorithm located in `a_traj_generator.py`
+
+**4b - Trajectory Types** The type of trajectory is determined by the various classes contained in `a_traj_generator.py`
 
 The following image displays which maneuvers and control algorithms are currently available:
 ![](/crazyflie_demo/scripts/plots/tree.png)
