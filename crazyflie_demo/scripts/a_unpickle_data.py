@@ -12,12 +12,7 @@ class MyPlot:
         ax - handle to the axes of the figure
         legend - a tuple of strings that identify the data
         """
-        # Only using ax right now
         self.ax = ax
-        # self.legend = legend
-        # self.colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
-        # self.line_styles = ['-', '-', '--', '-.', ':']
-        # self.line = []
         
         # Configure the axes
         self.ax.set_ylabel(ylabel)
@@ -36,8 +31,8 @@ class MyPlot:
         self.ax.relim()
         self.ax.autoscale()
 
-def main():
-    filename = 'cf_data'
+def traj():
+    filename = 'data_traj'
     infile = open(filename,'rb')
     data = pickle.load(infile)
     infile.close()
@@ -55,17 +50,17 @@ def main():
     handle.append(MyPlot(ax[2], ylabel='y [m]'))
     handle.append(MyPlot(ax[3], xlabel='t(s)', ylabel='yd [m/s]'))
 
-    handle[0].plotData(time, data[1], 'r', 'actual')
-    handle[0].plotData(time, data[2], 'b', 'commanded')
+    handle[0].plotData(time[1:], data[1][1:], 'r', 'actual')
+    handle[0].plotData(time[1:], data[2][1:], 'b', 'commanded')
 
-    handle[1].plotData(time, data[3], 'r', 'actual')
-    handle[1].plotData(time, data[4], 'b', 'commanded')
+    handle[1].plotData(time[1:], data[3][1:], 'r', 'actual')
+    handle[1].plotData(time[1:], data[4][1:], 'b', 'commanded')
 
-    handle[2].plotData(time, data[5], 'r', 'actual')
-    handle[2].plotData(time, data[6], 'b', 'commanded')
+    handle[2].plotData(time[1:], data[5][1:], 'r', 'actual')
+    handle[2].plotData(time[1:], data[6][1:], 'b', 'commanded')
 
-    handle[3].plotData(time, data[7], 'r', 'actual')
-    handle[3].plotData(time, data[8], 'b', 'commanded')
+    handle[3].plotData(time[1:], data[7][1:], 'r', 'actual')
+    handle[3].plotData(time[1:], data[8][1:], 'b', 'commanded')
     
     # Save out plot for future referral with unique timestamp
     now = datetime.utcnow()
@@ -73,5 +68,99 @@ def main():
 
     plt.show()
 
+def trajXY():
+    filename = 'data_traj'
+    infile = open(filename,'rb')
+    data = pickle.load(infile)
+    infile.close()
+
+    time =  data[0]
+
+    plt.figure()
+    plt.plot(data[1][1:], data[5][1:], c='r', label='acatual')
+    plt.plot(data[2][1:], data[6][1:], c='b', label='commanded')
+    plt.title('Circular Trajectory XY Data')
+    plt.xlabel('x [m]')
+    plt.ylabel('y [m]')
+    plt.legend(loc='best')
+    plt.grid(True)
+
+    # Save out plot for future referral with unique timestamp
+    now = datetime.utcnow()
+    plt.savefig('plots/cf_flight_{}.png'.format(now))
+
+    plt.show()
+
+def hover(component, var):
+    filename = 'data_' + component
+    infile = open(filename,'rb')
+    data = pickle.load(infile)
+    infile.close()
+
+    time =  data[0]
+    if component == 'altitude':
+        data[1] = data[1] - 0.4
+        data[2] = data[2] - 0.4
+
+    print(data[0])
+    print(data[1])
+    print(data[2])
+
+    plt.plot(time[1:], data[1][1:], c='r', label='acatual')
+    plt.plot(time[1:], data[2][1:], c='b', label='commanded')
+    plt.title('CF Yaw Data'.format(component))
+    plt.xlabel('time [s]')
+    plt.ylabel('{}'.format(var))
+    plt.legend(loc='best')
+    plt.grid(True)
+
+    if component == 'yaw':
+        plt.ylim((0.0, 1.2))
+
+    # Save out plot for future referral with unique timestamp
+    now = datetime.utcnow()
+    plt.savefig('plots/cf_flight_{}.png'.format(now))
+
+    plt.show()
+
+def hoverXY(var=None):
+    filename = 'data_xy'
+    infile = open(filename,'rb')
+    data = pickle.load(infile)
+    infile.close()
+
+    time =  data[0]
+
+    if var == 'x':
+        plt.figure()
+        plt.plot(time[1:], data[1][1:], c='r', label='acatual')
+        plt.plot(time[1:], data[2][1:], c='b', label='commanded')
+        plt.title('CF X Data')
+        plt.xlabel('time [s]')
+        plt.ylabel('x [m]')
+        plt.legend(loc='lower right')
+        plt.grid(True)
+
+    if var == 'y':
+        plt.figure()
+        plt.plot(time[1:], data[3][1:], c='r', label='acatual')
+        plt.plot(time[1:], data[4][1:], c='b', label='commanded')
+        plt.title('CF Y Data')
+        plt.xlabel('time [s]')
+        plt.ylabel('y [m]')
+        plt.legend(loc='best')
+        plt.grid(True)
+
+    # Save out plot for future referral with unique timestamp
+    now = datetime.utcnow()
+    plt.savefig('plots/cf_flight_{}.png'.format(now))
+
+    plt.show()
+
 if __name__ == '__main__':
-    main()
+    # traj()
+    trajXY()
+    # hover('altitude', 'z [m]')
+    # hover('yaw', 'psi [deg]')
+    # hoverXY(var='x')
+    # hoverXY(var='y')

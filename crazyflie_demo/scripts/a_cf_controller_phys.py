@@ -28,8 +28,13 @@ class AltitudeControllerPhys:
         self.e_prev = 0.0
 
         self.t_phys1 = 1/30.0
+
+        self.time_list = []
+        self.z_list    = []
+        self.z_t_list  = []
+        self.t = 0.0
     
-    def update(self, z_c, z):
+    def update(self, z_c, z, is_pickling=False):
         """
         Off-Board altitude controller from Canada Paper
 
@@ -53,7 +58,32 @@ class AltitudeControllerPhys:
         # print("error: {}, der error: {}, hist error {}".format((e * self.kp), (e_der * self.kd), (self.e_hist * self.ki)))
         del_omega_cap = self.ff + (self.kp * e) + (self.ki * self.e_hist) + (self.kd * e_der)
         # print("del_omega_cap", del_omega_cap)
+
+        if is_pickling:
+            self.t += self.t_phys1
+            self.time_list.append(self.t)
+            self.z_list.append(z)
+            self.z_t_list.append(z_c)
+
         return del_omega_cap
+
+    def pickleData(self):
+        """
+        Save out lists of data that record position and velocty data
+        of previous trial
+        """
+        print('Pickling data!')
+        data = np.array([
+            self.time_list,
+            self.z_list,    
+            self.z_t_list,
+        ])
+
+        with open(os.path.join(here, "data_altitude"), 'wb') as outfile:
+            pickle.dump(data, outfile)
+
+        outfile.close()
+        print('Pickling has completed!')
 
 class XYControllerPhys:
     def __init__(self, kp=10.0, ki=2.0, cap=15.0):
@@ -68,7 +98,15 @@ class XYControllerPhys:
         # TODO: update this to follow parameter file
         self.t_phys2 = 1/30.0
 
-    def update(self, x_c, x, y_c, y, yaw):
+        self.t = 0.0
+        self.time_list = []
+        self.x_list    = []
+        self.x_t_list  = []
+        self.y_list    = []
+        self.y_t_list  = []
+
+
+    def update(self, x_c, x, y_c, y, yaw, is_pickling=False):
         """
         Off-Board XY position controller from Canada Paper
 
@@ -114,7 +152,35 @@ class XYControllerPhys:
         if np.abs(theta_c) >= self.cap:
             theta_c = np.sign(theta_c) * self.cap
         
+        if is_pickling:
+            self.t += self.t_phys2
+            self.time_list.append(self.t)
+            self.x_list.append(x)
+            self.x_t_list.append(x_c)
+            self.y_list.append(y)
+            self.y_t_list.append(y_c)
+
         return phi_c, theta_c
+    
+    def pickleData(self):
+        """
+        Save out lists of data that record position and velocty data
+        of previous trial
+        """
+        print('Pickling data!')
+        data = np.array([
+            self.time_list,
+            self.x_list,
+            self.x_t_list,
+            self.y_list,
+            self.y_t_list,
+        ])
+
+        with open(os.path.join(here, "data_xy"), 'wb') as outfile:
+            pickle.dump(data, outfile)
+
+        outfile.close()
+        print('Pickling has completed!')
 
 class XYControllerTrajPhys:
     def __init__(self, kp=100.0, kd=100.0, k_ff = 10.0, cap=20.0):
@@ -244,7 +310,7 @@ class XYControllerTrajPhys:
             self.yd_t_list,
         ])
 
-        with open(os.path.join(here, "cf_data"), 'wb') as outfile:
+        with open(os.path.join(here, "data_traj"), 'wb') as outfile:
             pickle.dump(data, outfile)
 
         outfile.close()
@@ -253,8 +319,15 @@ class XYControllerTrajPhys:
 class YawControllerPhys:
     def __init__(self, kp=-20.0):
         self.kp = kp
+        self.hz = 30.0
+        self.t_phys = 1.0 / self.hz
+        
+        self.t = 0.0
+        self.time_list = []
+        self.yaw_list  = []
+        self.yaw_t_list = []
     
-    def update(self, yaw_c, yaw):
+    def update(self, yaw_c, yaw, is_pickling=False):
         """
         Off-Board global yaw angle controller
 
@@ -269,4 +342,29 @@ class YawControllerPhys:
         """
         yawe = yaw_c - yaw
         psid_c = self.kp * yawe
+
+        if is_pickling:
+            self.t += self.t_phys
+            self.time_list.append(self.t)
+            self.yaw_list.append(yaw)
+            self.yaw_t_list.append(yaw_c)
+
         return psid_c
+    
+    def pickleData(self):
+        """
+        Save out lists of data that record position and velocty data
+        of previous trial
+        """
+        print('Pickling data!')
+        data = np.array([
+            self.time_list,
+            self.yaw_list,    
+            self.yaw_t_list,
+        ])
+
+        with open(os.path.join(here, "data_yaw"), 'wb') as outfile:
+            pickle.dump(data, outfile)
+
+        outfile.close()
+        print('Pickling has completed!')

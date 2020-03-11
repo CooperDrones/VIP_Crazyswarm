@@ -11,21 +11,21 @@ if __name__ == '__main__':
     # Initial Hover start point
     z_c = 0.4
     y_c = 0.0
-    x_c = 0.666
+    x_c = 0.333
     yaw_c = 0.0
-    cf4 = CooperativeQuad('crazyflie4')
+    cf3 = CooperativeQuad('crazyflie3')
 
     traj_gen = TrajGenerator()
     x_center = 0.0; y_center = 0.0
     omega = 1.0
     no_osc = 2.0
     circle_traj = traj_gen.genCircleTraj(x_c, y_c, x_center, y_center, \
-        omega, no_osc, CCW=False)
+        omega, no_osc, CCW=True)
 
     # Handle discrepancy between military and AM/PM time
     tz = timezone('EST')
     now = datetime.now(tz)
-    start_time = rospy.get_param("/crazyflie4/controller/start_time")
+    start_time = rospy.get_param("/crazyflie3/controller/start_time")
     if now.hour > 12:
         global_start = 3600*(float(start_time[11:13]) + 11) + \
             60*float(start_time[14:16]) + float(start_time[17:])
@@ -35,8 +35,8 @@ if __name__ == '__main__':
     t_offset = 10.0
     global_sync_time = global_start + t_offset 
 
-    cf4.hoverStiff(x_c, y_c, z_c, yaw_c, 0.05, is_break=False, \
+    cf3.hoverStiff(x_c, y_c, z_c, yaw_c, 0.05, is_break=False, \
         is_synchronized=True, global_sync_time=global_sync_time)
-    cf4.trajTracking(circle_traj, z_c)
-    cf4.hoverStiff(x_c, y_c, z_c, yaw_c, 0.1)
-    cf4.land()
+    cf3.trajTracking(circle_traj, z_c)
+    cf3.hoverStiff(x_c, y_c, z_c, yaw_c, 0.1)
+    cf3.land()
