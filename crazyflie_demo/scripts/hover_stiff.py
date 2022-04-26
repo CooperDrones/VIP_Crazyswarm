@@ -110,7 +110,7 @@ class CooperativeQuad:
 def main():
     try:
         # Initialize drone control class with arg matching vicon object name
-        cf1 = CooperativeQuad('crazyflie4')
+        cf1 = CooperativeQuad('crazyflie3')
         cf1.dummyForLoop()
 
         # Hover at z=0.5, works tested 1/27/2020

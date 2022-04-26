@@ -181,6 +181,7 @@ private:
                 targetWorld.header.frame_id = m_worldFrame;
                 targetWorld.pose = m_goal.pose;
 
+
                 geometry_msgs::PoseStamped targetDrone;
                 m_listener.transformPose(m_frame, targetWorld, targetDrone);
 

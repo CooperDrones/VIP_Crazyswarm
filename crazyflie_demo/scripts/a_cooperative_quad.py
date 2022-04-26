@@ -120,6 +120,7 @@ class CooperativeQuad:
         while not rospy.is_shutdown():
             pose_prev = pose
             pose = self.pose
+            print(pose.transform.translation)
             quat = [pose.transform.rotation.x, pose.transform.rotation.y, pose.transform.rotation.z, pose.transform.rotation.w]
             x = pose.transform.translation.x; y = pose.transform.translation.y; z = pose.transform.translation.z
             if math.isnan(pose.transform.translation.x): # handle nans by setting to last known position
@@ -156,6 +157,7 @@ class CooperativeQuad:
                     print(self.cf_name + ' found the hover setpoint!')
                     # Save out last known location
                     self.x_fin = x; self.y_fin = y; self.yaw_fin = yaw
+
                     break # include to move to other function
             
             # print("global_sync_time is: {}".format(global_sync_time))
@@ -163,6 +165,9 @@ class CooperativeQuad:
             if is_synchronized:
                 local_in_loop += self.t_phys
                 time_offset = 0.04
+                print(local_in_loop)
+                print(global_sync_time - time_offset)
+                print(global_sync_time + time_offset)
                 if (local_in_loop > (global_sync_time - time_offset) \
                     and local_in_loop < (global_sync_time + time_offset)):
                     print(self.cf_name + ' hit the time delay for synchronization!')
@@ -175,7 +180,7 @@ class CooperativeQuad:
                     (time_delay < (local2 + time_offset)):
                     print(self.cf_name + ' hit the time delay!')
                     break
-
+            
             self.pub.publish(self.msg)
             self.rate.sleep()
         
@@ -253,6 +258,9 @@ class CooperativeQuad:
         # Save out data through pickle
         xy_traj_ctrl_phys.pickleData()
 
+
+
+
     def trajTracking(self, traj, z_c):
         """
         Runs a 2D-3D trajectory tracking algorithm
@@ -291,7 +299,7 @@ class CooperativeQuad:
             x_global = R.apply([1, 0, 0]) # project to world x-axis
             yaw = np.arctan2(np.cross([1, 0, 0], x_global)[2], np.dot(x_global, [1, 0, 0]))
 
-            # TODO: make flexible with y values
+            #cf1.hoverStiff(0.0, 0.0, 0.4, 0.0, 0.01) # False means don't break after reaching set point
             r_t      = np.array([traj[i, 0], traj[i, 3]]) # traj pos values
             r_t_vect = np.array([traj[i+1, 0], traj[i+1, 3]]) - r_t # vector from current pos to next pos in traj
             rd_t     = np.array([traj[i, 1], traj[i, 4]]) # traj vel values
@@ -365,7 +373,7 @@ def main():
         cf1.dummyForLoop()
 
         # # Hover at z=0.5, works tested 1/27/2020
-        cf1.hoverStiff(0.0, 0.0, 0.4, 0.0, 0.02) # False means don't break after reaching set point
+        cf1.hoverStiff(0.3, 0.0, 0.4, 0.0, 0.01) # False means don't break after reaching set point
         
         # # z test
         # cf1.hoverStiff(0.0, 0.0, 1.4, 0.0, 0.01, is_break=False, time_delay=10.0, var='z') # x # y # yaw

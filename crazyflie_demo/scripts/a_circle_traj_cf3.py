@@ -19,8 +19,7 @@ if __name__ == '__main__':
     x_center = 0.0; y_center = 0.0
     omega = 1.0
     no_osc = 2.0
-    circle_traj = traj_gen.genCircleTraj(x_c, y_c, x_center, y_center, \
-        omega, no_osc, CCW=True)
+    circle_traj = traj_gen.genCircleTraj(x_c, y_c, x_center, y_center, omega, no_osc, CCW=True)
 
     # Handle discrepancy between military and AM/PM time
     tz = timezone('EST')

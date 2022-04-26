@@ -49,7 +49,7 @@ class StandingWaveGenerator:
 
             ax[0].plot(traj[:,3], traj[:,0], c='r') # plot pos vs. time
             ax[1].plot(traj[:,3], traj[:,1], c='b') # plot vel vs. time
-            ax[2].plot(traj[:,3], traj[:,2], c='g') # plot vel vs. time
+            ax[2].plot(traj[:,3], traj[:,2], c='g') # plot accel vs. time
             ax[0].set_title('Standing Wave Trajectory')
             ax[0].set_ylabel('position [m]')
             ax[1].set_ylabel('velocity [m/s]')

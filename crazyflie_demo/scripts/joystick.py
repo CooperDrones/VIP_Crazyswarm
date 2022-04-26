@@ -19,9 +19,9 @@ pub_destination = Float64MultiArray()
 
 while True:
     pygame.event.pump()
-    x = pygame.joystick.Joystick(0).get_axis(0)/100
-    y = pygame.joystick.Joystick(0).get_axis(1)/100
-    z = -pygame.joystick.Joystick(0).get_axis(4)/100
+    x = pygame.joystick.Joystick(0).get_axis(0)/5
+    y = pygame.joystick.Joystick(0).get_axis(1)/5
+    z = -pygame.joystick.Joystick(0).get_axis(4)/20
     pub_destination.data = np.array([x,y,z])
     destination_publisher.publish(pub_destination)
     rospy.sleep(0.01)

@@ -80,7 +80,7 @@ class Tester:
         xe_b_hist = 0.
         y_b_prev = 0.
         ye_b_hist = 0.
-        origin = self.getPose('crazyflie4')
+        origin = self.getPose('crazyflie3')
         pose = origin
         yawr = 0.
 
@@ -127,7 +127,7 @@ class Tester:
             # for _ in range(100):
                 # Get current drone pose
                 pose_prev = pose
-                pose = self.getPose('crazyflie4')
+                pose = self.getPose('crazyflie3')
                 if math.isnan(pose.orientation.x): # If nan is thrown, set to last known position
                     pose = pose_prev
 
@@ -218,7 +218,7 @@ class Tester:
         return b
 
     def followTraj(self, traj):
-        origin = self.getPose('crazyflie4')
+        origin = self.getPose('crazyflie3')
         pose = origin
         ze_hist = 0.
         ze_prev = 0.
@@ -229,7 +229,7 @@ class Tester:
         while not rospy.is_shutdown():
             # Get current drone pose
             pose_prev = pose
-            pose = self.getPose('crazyflie4')
+            pose = self.getPose('crazyflie3')
             if math.isnan(pose.orientation.x): # If nan is thrown, set to last known position
                 pose = pose_prev
             

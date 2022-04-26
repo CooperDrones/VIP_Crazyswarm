@@ -1,46 +1,46 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="joy_dev" default="/dev/input/js0" />
+  <!-- <arg name="joy_dev" default="/dev/input/js0" /> -->
 
-  <arg name="uri1" default="radio://0/35/2M/E7E7E7E701" />
-  <arg name="frame1" default="/vicon/crazyflie1/crazyflie1" />
+  <arg name="uri3" default="radio://0/35/2M/E7E7E7E703" />
+  <arg name="frame3" default="/vicon/crazyflie3/crazyflie3" />
 
-  <arg name="uri2" default="radio://0/80/2M/E7E7E7E702" />
-  <arg name="frame2" default="/vicon/crazyflie2/crazyflie2" />
+  <!-- <arg name="uri2" default="radio://0/80/2M/E7E7E7E702" />
+  <arg name="frame2" default="/vicon/crazyflie2/crazyflie2" /> -->
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-  <node name="joy" pkg="joy" type="joy_node" output="screen">
+  <!-- <node name="joy" pkg="joy" type="joy_node" output="screen">
     <param name="dev" value="$(arg joy_dev)" />
-  </node>
+  </node> -->
 
-  <group ns="crazyflie1">
+  <group ns="crazyflie3">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
-      <arg name="uri" value="$(arg uri1)" />
-      <arg name="tf_prefix" value="crazyflie1" />
+      <arg name="uri" value="$(arg uri3)" />
+      <arg name="tf_prefix" value="crazyflie3" />
       <arg name="enable_logging" value="False" />
     </include>
 
-    <node name="joystick_controller" pkg="crazyflie_demo" type="controller.py" output="screen">
+    <!-- <node name="joystick_controller" pkg="crazyflie_demo" type="controller.py" output="screen">
       <param name="use_crazyflie_controller" value="True" />
       <param name="joy_topic" value="/joy" />
-    </node>
+    </node> -->
 
     <include file="$(find crazyflie_controller)/launch/crazyflie2.launch">
-      <arg name="frame" value="$(arg frame1)" />
+      <arg name="frame" value="$(arg frame3)" />
     </include>
 
     <node name="pose" pkg="crazyflie_demo" type="demo1.py" output="screen">
-      <param name="frame" value="$(arg frame1)" />
+      <param name="frame" value="$(arg frame3)" />
     </node>
   </group>
 
-  <group ns="crazyflie2">
+  <!-- <group ns="crazyflie2">
     <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
       <arg name="uri" value="$(arg uri2)" />
       <arg name="tf_prefix" value="crazyflie2" />
-      <arg name="enable_logging" value="False" />
+      <arg name="enable_logging" value="False" 1/>
     </include>
 
     <node name="joystick_controller" pkg="crazyflie_demo" type="controller.py" output="screen">
@@ -55,7 +55,7 @@
     <node name="pose" pkg="crazyflie_demo" type="demo2.py" output="screen">
       <param name="frame" value="$(arg frame2)" />
     </node>
-  </group>
+  </group> -->
 
   <!-- run vicon bridge -->
   <include file="$(find vicon_bridge)/launch/vicon.launch"/>

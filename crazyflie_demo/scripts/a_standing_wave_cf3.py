@@ -10,9 +10,9 @@ from pytz import timezone
 if __name__ == '__main__':
     # Generate trajectory
     wave_traj = StandingWaveGenerator()
-    frequency = 2.0 # lower is slower
-    amplitude = 1.0
-    no_oscillations = 3
+    frequency = 1.0 # lower is slower
+    amplitude = 0.5
+    no_oscillations = 5
     no_drones = 3
     traj = wave_traj.genWaveTraj(amplitude, frequency, \
         no_oscillations, no_drones)

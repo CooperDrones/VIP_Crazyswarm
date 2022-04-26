@@ -85,3 +85,25 @@ class Demo():
 
 #     # cf4_pencil_tracker = Demo(-0.25, '/crazyflie4')
 #     # cf4_pencil_tracker.run()
+
+#   while not rospy.is_shutdown():
+#             goal.header.seq += 1
+#             goal.header.stamp = rospy.Time.now()
+#             goal.pose.position.x = self.goals[self.goalIndex][0]
+#             goal.pose.position.y = self.goals[self.goalIndex][1]
+#             goal.pose.position.z = self.goals[self.goalIndex][2]
+#             quaternion = tf.transformations.quaternion_from_euler(0, 0, self.goals[self.goalIndex][3])
+#             goal.pose.orientation.x = quaternion[0]
+#             goal.pose.orientation.y = quaternion[1]
+#             goal.pose.orientation.z = quaternion[2]
+#             goal.pose.orientation.w = quaternion[3]
+            
+#             if self.counter >= 200:
+#                 self.pencil_pose = self.getPose('pencil')
+#                 print(self.pencil_pose)
+#                 goal.pose.position.x = self.pencil_pose[0] + self.offset_x
+#                 goal.pose.position.y = self.pencil_pose[1] - 0.5 + self.offset_y
+#                 goal.pose.position.z = self.pencil_pose[2]
+
+#             self.pubGoal.publish(goal)
+#             self.counter += 1

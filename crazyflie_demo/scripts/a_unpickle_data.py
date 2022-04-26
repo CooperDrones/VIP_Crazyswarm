@@ -152,14 +152,7 @@ def hoverXY(var=None):
         plt.grid(True)
 
     # Save out plot for future referral with unique timestamp
-    now = datetime.utcnow()
-    plt.savefig('plots/cf_flight_{}.png'.format(now))
-
-    plt.show()
-
-if __name__ == '__main__':
-    # traj()
-    trajXY()
+    now = datetime.utcnow() 
     # hover('altitude', 'z [m]')
     # hover('yaw', 'psi [deg]')
     # hoverXY(var='x')
