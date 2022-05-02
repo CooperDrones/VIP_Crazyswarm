@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 
+import imp
 import numpy as np
 import pickle
 from datetime import datetime
 from pytz import timezone
+import os
+import sys
+import time
+import psutil
 
 # Import crazyflie model modules
 from a_cf_controller_phys import AltitudeControllerPhys, XYControllerPhys, YawControllerPhys, XYControllerTrajPhys
@@ -17,51 +22,80 @@ from geometry_msgs.msg import Twist, Vector3, TransformStamped, PoseStamped # tw
 from vicon_bridge.srv import viconGrabPose
 from std_msgs.msg import Int8
 from crazyflie_driver.srv import Takeoff,Land, LandRequest
-from rc_car_tracking import Demo
+
 
 class safety_check:
-    def __init__(self, cf_name, is_main=False):
-        rospy.init_node('demo_cooper', anonymous=True)
-        self.cf_name = cf_name
-        self.worldFrame = rospy.get_param("~worldFrame", "/world")
-        self.frame = rospy.get_param("~frame")
-        # self.pubGoal = rospy.Publisher('goal', PoseStamped, queue_size=1)
-        self.listener = TransformListener()
-        self.listener = TransformListener()
-        self.goals = [[0, 0, 0.4, 0, 0]]
-        # rospy.wait_for_service(prefix + '/takeoff')        
-        self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
-        self.record_rate = rospy.Rate(2) # every second
-        self.time_delay = rospy.Rate(0.1) # 10 seconds
-    
-    def getPose(self, vicon_object):
-        self.pose = self.pose_getter(vicon_object, vicon_object, 1)
-        self.position = self.pose.pose.pose.position
-        self.position_list = [self.position.x, self.position.y, self.position.z]
-        print(self.position_list)
-        return self.position_list
+    def __init__(self, safety_bound_x=None, safety_bound_y=None, safety_bound_z=None, buffer_bound_x=None, buffer_bound_y=None,buffer_bound_z=None):
+        self.safety_bound_x = safety_bound_x
+        self.safety_bound_y = safety_bound_y
+        self.safety_bound_z = safety_bound_z
+        self.buffer_bound_x = buffer_bound_x
+        self.buffer_bound_y = buffer_bound_y
+        self.buffer_bound_z = buffer_bound_z
 
-    def run(self):
-        self.listener.waitForTransform(self.worldFrame, self.frame, rospy.Time(), rospy.Duration(5.0))
-        goal = PoseStamped()
-        goal.header.seq = 0
-        goal.header.frame_id = self.worldFrame
-        self.counter = 0
-        # self.takeoff_request()
-        while not rospy.is_shutdown():
-            goal.header.seq += 1
-            goal.header.stamp = rospy.Time.now()
-            goal.pose.position.x = self.goals[self.goalIndex][0]
-            goal.pose.position.y = self.goals[self.goalIndex][1]
-            goal.pose.position.z = self.goals[self.goalIndex][2]
-            quaternion = tf.transformations.quaternion_from_euler(0, 0, self.goals[self.goalIndex][3])
-            goal.pose.orientation.x = quaternion[0]
-            goal.pose.orientation.y = quaternion[1]
-            goal.pose.orientation.z = quaternion[2]
-            goal.pose.orientation.w = quaternion[3]
+    def bound_check(self, x, y, z):
+        if (np.abs(x) >= self.safety_bound_x and np.abs(x) <= self.buffer_bound_x):
+            print("Position x is in buffer zone")
+        elif (np.abs(x) >= self.buffer_bound_x):
+            print("Position x is in danger zone!")
+            os.system('rosservice call /crazyflie3/land')
+            time.sleep(3)
+        if (np.abs(y) >= self.safety_bound_y and np.abs(y) <= self.buffer_bound_y):
+            print("Position y is in buffer zone")
+        elif (np.abs(y) >= self.buffer_bound_y):
+            print("Position y is in danger zone!")
+            os.system('rosservice call /crazyflie3/land')
+            time.sleep(3)
+        if (np.abs(z) >= self.safety_bound_z and np.abs(z) <= self.buffer_bound_z):
+            print("Position z is in buffer zone")
+        elif (np.abs(z) >=  self.buffer_bound_z):
+            print("Position z is in danger zone!")
+            os.system('rosservice call /crazyflie3/land')
+            time.sleep(3)
+        return 0
 
-            self.pubGoal.publish(goal)
-            self.counter += 1
+    # def __init__(self, cf_name, is_main=False):
+    #     rospy.init_node('demo_cooper', anonymous=True)
+    #     self.cf_name = cf_name
+    #     self.worldFrame = rospy.get_param("~worldFrame", "/world")
+    #     self.frame = rospy.get_param("~frame")
+    #     # self.pubGoal = rospy.Publisher('goal', PoseStamped, queue_size=1)
+    #     self.listener = TransformListener()
+    #     self.listener = TransformListener()
+    #     self.goals = [[0, 0, 0.4, 0, 0]]
+    #     # rospy.wait_for_service(prefix + '/takeoff')        
+    #     self.pose_getter = rospy.ServiceProxy('/vicon/grab_vicon_pose', viconGrabPose)
+    #     self.record_rate = rospy.Rate(2) # every second
+    #     self.time_delay = rospy.Rate(0.1) # 10 seconds
+
+    # def getPose(self, vicon_object):
+    #     self.pose = self.pose_getter(vicon_object, vicon_object, 1)
+    #     self.position = self.pose.pose.pose.position
+    #     self.position_list = [self.position.x, self.position.y, self.position.z]
+    #     print(self.position_list)
+    #     return self.position_list
+
+    # def run(self):
+    #     self.listener.waitForTransform(self.worldFrame, self.frame, rospy.Time(), rospy.Duration(5.0))
+    #     goal = PoseStamped()
+    #     goal.header.seq = 0
+    #     goal.header.frame_id = self.worldFrame
+    #     self.counter = 0
+    #     # self.takeoff_request()
+    #     while not rospy.is_shutdown():
+    #         goal.header.seq += 1
+    #         goal.header.stamp = rospy.Time.now()
+    #         goal.pose.position.x = self.goals[self.goalIndex][0]
+    #         goal.pose.position.y = self.goals[self.goalIndex][1]
+    #         goal.pose.position.z = self.goals[self.goalIndex][2]
+    #         quaternion = tf.transformations.quaternion_from_euler(0, 0, self.goals[self.goalIndex][3])
+    #         goal.pose.orientation.x = quaternion[0]
+    #         goal.pose.orientation.y = quaternion[1]
+    #         goal.pose.orientation.z = quaternion[2]
+    #         goal.pose.orientation.w = quaternion[3]
+
+    #         self.pubGoal.publish(goal)
+    #         self.counter += 1
 
     # TODO: need to get the actual dimension of the boundaries
 # def safe_bound():
