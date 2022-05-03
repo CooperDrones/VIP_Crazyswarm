@@ -39,7 +39,7 @@
       <arg name="frame" value="$(arg frame3)" />
     </include>
 
-    <node name="pose" pkg="crazyflie_demo" type="rc_car_tracking_cf3.py" output="screen">
+    <node name="pose" pkg="crazyflie_demo" type="rc_car_tracking_MAIN.py" output="screen">
       <param name="frame" value="$(arg frame3)" />
     </node>
   </group>
