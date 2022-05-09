@@ -23,7 +23,7 @@ class Control_system():
 
         error = des - curr          # error
         up = self.kp * error        # actuator signal for proportional
-
+        
         # sigma = 1.0 # Dirty-bandwidth
         # velocity = (2*sigma - dt)/(2*sigma + dt) * self.u_prev + 2/(2*sigma + dt) * (curr - prev_pos)
 
